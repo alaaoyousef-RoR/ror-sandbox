@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoR Operation System - نظام إدارة المحمصة والمقهى</title>
+    <meta name="description" content="نظام إدارة تشغيلي موحد لمحمصة ومقهى RoR يشمل لوحة التحكم والمبيعات والأقسام الإدارية">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts - IBM Plex Sans Arabic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+    <!-- ====== SIDEBAR ====== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-mug-hot"></i>
+                <h2>RoR System</h2>
+            </div>
+            <button class="toggle-btn" id="toggleSidebar" aria-label="تبديل القائمة الجانبية">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav" role="navigation" aria-label="القائمة الرئيسية">
+            <!-- Dashboard -->
+            <div class="nav-item" data-page="dashboard" id="nav-dashboard" role="button" tabindex="0">
+                <i class="fas fa-chart-line"></i>
+                <span>لوحة التحكم الرئيسية</span>
+            </div>
+            <div class="nav-item sub-item" data-page="kpi-dashboard" id="nav-kpi-dashboard" role="button" tabindex="0">
+                <i class="fas fa-gauge-high"></i>
+                <span>لوحة المؤشرات والأداء</span>
+            </div>
+
+            <!-- Operational Plan -->
+            <div class="nav-item expandable" id="operationalPlanToggle" role="button" tabindex="0" aria-expanded="false">
+                <i class="fas fa-clipboard-list"></i>
+                <span>الخطة التشغيلية</span>
+                <i class="fas fa-chevron-down arrow"></i>
+            </div>
+            <div class="nav-submenu" id="operationalPlanSubmenu" role="menu">
+                <div class="nav-item sub-item" data-page="weekly-plan" id="nav-weekly-plan" role="menuitem" tabindex="0">
+                    <i class="fas fa-calendar-week"></i>
+                    <span>الخطة الأسبوعية</span>
+                </div>
+                <div class="nav-item sub-item" data-page="40-tasks" id="nav-40-tasks" role="menuitem" tabindex="0">
+                    <i class="fas fa-tasks"></i>
+                    <span>خطة الـ 40 مهمة</span>
+                </div>
+                <div class="nav-item sub-item" data-page="menu-engineering" id="nav-menu-engineering" role="menuitem" tabindex="0">
+                    <i class="fas fa-utensils"></i>
+                    <span>هندسة القائمة</span>
+                </div>
+                <div class="nav-item sub-item" data-page="breakeven" id="nav-breakeven" role="menuitem" tabindex="0">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>نقطة التعادل</span>
+                </div>
+                <div class="nav-item sub-item" data-page="raci-matrix" id="nav-raci-matrix" role="menuitem" tabindex="0">
+                    <i class="fas fa-sitemap"></i>
+                    <span>مصفوفة المسؤوليات</span>
+                </div>
+                <div class="nav-item sub-item" data-page="waste-cashflow" id="nav-waste-cashflow" role="menuitem" tabindex="0">
+                    <i class="fas fa-coins"></i>
+                    <span>الهدر والسيولة</span>
+                </div>
+            </div>
+
+            <!-- RoR Operation System -->
+            <div class="nav-item expandable" id="rorSystemToggle" role="button" tabindex="0" aria-expanded="false">
+                <i class="fas fa-cogs"></i>
+                <span>نظام RoR التشغيلي</span>
+                <i class="fas fa-chevron-down arrow"></i>
+            </div>
+            <div class="nav-submenu" id="rorSystemSubmenu" role="menu">
+                <div class="nav-item sub-item" data-page="vision-dashboard" id="nav-vision-dashboard" role="menuitem" tabindex="0">
+                    <i class="fas fa-eye"></i>
+                    <span>الرؤية الانتقالية ولوحة الأداء المالي</span>
+                </div>
+                <div class="nav-item sub-item" data-page="financial-commitments" id="nav-financial-commitments" role="menuitem" tabindex="0">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>حصر الالتزامات والمصاريف المالية</span>
+                </div>
+                <div class="nav-item sub-item" data-page="cafe-sales" id="nav-cafe-sales" role="menuitem" tabindex="0">
+                    <i class="fas fa-coffee"></i>
+                    <span>تقارير مبيعات المقهى (البار)</span>
+                </div>
+                <div class="nav-item sub-item" data-page="roastery-sales" id="nav-roastery-sales" role="menuitem" tabindex="0">
+                    <i class="fas fa-fire"></i>
+                    <span>تقارير مبيعات المحمصة</span>
+                </div>
+                <div class="nav-item sub-item" data-page="revolution-plan" id="nav-revolution-plan" role="menuitem" tabindex="0">
+                    <i class="fas fa-rocket"></i>
+                    <span>خطة ثورة RoR التنفيذية</span>
+                </div>
+            </div>
+
+            <!-- Departments -->
+            <div class="nav-item expandable" id="departmentsToggle" role="button" tabindex="0" aria-expanded="false">
+                <i class="fas fa-building"></i>
+                <span>الأقسام الإدارية والتشغيلية</span>
+                <i class="fas fa-chevron-down arrow"></i>
+            </div>
+            <div class="nav-submenu" id="departmentsSubmenu" role="menu">
+                <div class="nav-item sub-item" data-page="dept-production" id="nav-dept-production" role="menuitem" tabindex="0">
+                    <i class="fas fa-industry"></i>
+                    <span>قسم المحمصة والإنتاج</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-quality" id="nav-dept-quality" role="menuitem" tabindex="0">
+                    <i class="fas fa-award"></i>
+                    <span>قسم ضبط الجودة والبحث والتطوير</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-marketing" id="nav-dept-marketing" role="menuitem" tabindex="0">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>قسم التسويق والعلامة التجارية</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-sales" id="nav-dept-sales" role="menuitem" tabindex="0">
+                    <i class="fas fa-handshake"></i>
+                    <span>قسم المبيعات وتطوير الأعمال</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-ecommerce" id="nav-dept-ecommerce" role="menuitem" tabindex="0">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>قسم التجارة الإلكترونية واللوجستيات</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-maintenance" id="nav-dept-maintenance" role="menuitem" tabindex="0">
+                    <i class="fas fa-tools"></i>
+                    <span>قسم الصيانة والدعم الفني</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-hr" id="nav-dept-hr" role="menuitem" tabindex="0">
+                    <i class="fas fa-users"></i>
+                    <span>قسم الموارد البشرية</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-procurement" id="nav-dept-procurement" role="menuitem" tabindex="0">
+                    <i class="fas fa-truck-ramp-box"></i>
+                    <span>قسم المشتريات والتوريد</span>
+                </div>
+                <div class="nav-item sub-item" data-page="dept-finance" id="nav-dept-finance" role="menuitem" tabindex="0">
+                    <i class="fas fa-calculator"></i>
+                    <span>قسم المالية</span>
+                </div>
+            </div>
+
+            <!-- Structure & Organization -->
+            <div class="nav-item expandable" id="structureToggle" role="button" tabindex="0" aria-expanded="false">
+                <i class="fas fa-network-wired"></i>
+                <span>الهيكل والتنظيم</span>
+                <i class="fas fa-chevron-down arrow"></i>
+            </div>
+            <div class="nav-submenu" id="structureSubmenu" role="menu">
+                <div class="nav-item sub-item" data-page="org-chart" id="nav-org-chart" role="menuitem" tabindex="0">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>الهيكل التنظيمي</span>
+                </div>
+                <div class="nav-item sub-item" data-page="team-roles" id="nav-team-roles" role="menuitem" tabindex="0">
+                    <i class="fas fa-user-tie"></i>
+                    <span>مهام فريق RoR</span>
+                </div>
+                <div class="nav-item sub-item" data-page="mind-map" id="nav-mind-map" role="menuitem" tabindex="0">
+                    <i class="fas fa-brain"></i>
+                    <span>الخريطة الذهنية للفريق</span>
+                </div>
+            </div>
+
+            <!-- Development -->
+            <div class="nav-item" data-page="development" id="nav-development" role="button" tabindex="0">
+                <i class="fas fa-seedling"></i>
+                <span>التطوير والنمو</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <div class="user-details">
+                    <p class="user-name">علاء يوسف</p>
+                    <p class="user-role">مدير العمليات</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ====== MAIN CONTENT ====== -->
+    <main class="main-content" id="mainContent">
+
+        <!-- ====== TOP BAR ====== -->
+        <header class="top-bar">
+            <!-- Right Section (RTL Start) -->
+            <div class="top-bar-start">
+                <button class="toggle-btn top-hamburger-btn" id="toggleSidebarMobile" aria-label="تبديل القائمة الجانبية">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="top-search-pill">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" placeholder="بحث فوري في المهام، المنيو، مبيعات البار، والمحمصة..." id="topSearchInput" aria-label="بحث فوري">
+                </div>
+                <div class="live-status-pill" id="dayNightStatus">
+                    <i class="fas fa-sun text-amber"></i>
+                    <span>نهاري (تلقائي)</span>
+                    <span class="pulse-green-dot" title="النظام متصل"></span>
+                </div>
+                <div class="greeting-datetime-block">
+                    <div class="greeting-line" id="dynamicGreeting">
+                        <i class="fas fa-sun" id="greetingIcon"></i>
+                        <span id="greetingText">ظهرًا مباركًا، علاء</span>
+                    </div>
+                    <div class="datetime-line" id="dateTime" aria-live="polite">الأربعاء، 16 سبتمبر 2026 | الوقت الحالي: 16:15</div>
+                </div>
+            </div>
+
+            <!-- Left Section (RTL End / User Profile) -->
+            <div class="top-bar-end">
+                <button class="panel-toggle-btn" id="toggleRightPanel" aria-label="لوحة الإجراءات السريعة" title="لوحة العمليات السريعة">
+                    <i class="fas fa-sliders"></i>
+                </button>
+                <div class="notifications" role="button" aria-label="الإشعارات" tabindex="0" id="notifBell">
+                    <i class="far fa-bell"></i>
+                    <span class="badge badge-alert" aria-label="3 إشعارات جديدة">3</span>
+                </div>
+
+                <!-- Interactive User Dropdown Trigger -->
+                <div class="user-profile-menu-wrap" id="userProfileMenuWrap">
+                    <button class="user-menu-btn" id="userMenuBtn" aria-expanded="false" aria-haspopup="true">
+                        <div class="user-avatar-initials" id="userTopAvatar">ع ي</div>
+                        <div class="user-meta-top">
+                            <span class="user-meta-name" id="userTopName">علاء يوسف</span>
+                            <span class="user-meta-role" id="userTopRole">Chief Strategic Advisor</span>
+                        </div>
+                        <i class="fas fa-chevron-down dropdown-caret"></i>
+                    </button>
+
+                    <!-- Dropdown Popover Menu -->
+                    <div class="user-dropdown-popover" id="userDropdownPopover" role="menu">
+                        <div class="popover-user-card">
+                            <div class="popover-avatar" id="popoverAvatar">ع ي</div>
+                            <div class="popover-details">
+                                <h4 id="popoverName">علاء يوسف</h4>
+                                <p id="popoverRole">Chief Strategic Advisor &amp; Roastmaster</p>
+                                <span class="badge success pill"><span class="pulse-green-dot"></span> حساب نشط وموثق</span>
+                            </div>
+                        </div>
+
+                        <div class="popover-divider"></div>
+
+                        <!-- Multi-Partner Account Switcher -->
+                        <div class="partner-accounts-box">
+                            <span class="box-title"><i class="fas fa-users-gear"></i> تبديل حساب الشريك المؤسس</span>
+                            <div class="partner-list">
+                                <button type="button" class="partner-item active" data-user="alaa">
+                                    <span class="part-avatar part-alaa">ع ي</span>
+                                    <div class="part-details">
+                                        <strong>علاء يوسف</strong>
+                                        <small>Chief Strategic Advisor &amp; Roastmaster</small>
+                                    </div>
+                                </button>
+                                <button type="button" class="partner-item" data-user="joud">
+                                    <span class="part-avatar part-joud">ج ق</span>
+                                    <div class="part-details">
+                                        <strong>جود القصير</strong>
+                                        <small>Chief Executive Officer &amp; CMO</small>
+                                    </div>
+                                </button>
+                                <button type="button" class="partner-item" data-user="abdullah">
+                                    <span class="part-avatar part-abdullah">ع ق</span>
+                                    <div class="part-details">
+                                        <strong>عبد الله القصير</strong>
+                                        <small>Chief Operating Officer (COO)</small>
+                                    </div>
+                                </button>
+                                <button type="button" class="partner-item" data-user="anas">
+                                    <span class="part-avatar part-anas">أ ص</span>
+                                    <div class="part-details">
+                                        <strong>أنس الصفدي</strong>
+                                        <small>Chief Financial Officer (CFO)</small>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="popover-divider"></div>
+
+                        <a href="#" class="popover-item" id="menuItemAccount"><i class="fas fa-id-badge"></i> حسابي (My Account)</a>
+                        <a href="#" class="popover-item" id="menuItemSettings"><i class="fas fa-sliders"></i> إعدادات الملف الشخصي (Profile Settings)</a>
+                        <a href="#" class="popover-item" id="menuItemPassword"><i class="fas fa-key"></i> تغيير كلمة المرور (Change Password)</a>
+                        <div class="popover-divider"></div>
+                        <a href="#" class="popover-item item-danger" id="menuItemLogout"><i class="fas fa-arrow-right-from-bracket"></i> تسجيل الخروج (Logout)</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ====== THREE-COLUMN WORKSPACE ====== -->
+        <div class="workspace-layout">
+            <!-- Main Workspace (Center Column) -->
+            <div class="content-area" id="contentArea" role="main">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+
+            <!-- Right Panel (Side Drawer / 3rd Column) -->
+            <aside class="side-panel" id="sidePanel" aria-label="لوحة العمليات السريعة">
+                <!-- User Profile Card -->
+                <div class="side-panel-card user-profile-card">
+                    <div class="profile-header-flex">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-tie"></i>
+                            <span class="avatar-status-dot" title="متصل"></span>
+                        </div>
+                        <div class="profile-meta">
+                            <h3 class="profile-name">علاء يوسف</h3>
+                            <p class="profile-role">مدير العمليات التشغيلية</p>
+                        </div>
+                    </div>
+                    <div class="profile-badges-row">
+                        <span class="badge success"><i class="fas fa-shield-halved"></i> إدارة عامة</span>
+                        <span class="badge neutral"><i class="fas fa-store"></i> فرع المحمصة</span>
+                    </div>
+                </div>
+
+                <!-- Quick Filters -->
+                <div class="side-panel-card quick-filters-card">
+                    <div class="panel-card-title">
+                        <i class="fas fa-filter"></i>
+                        <span>التصفية السريعة</span>
+                    </div>
+                    <div class="filter-field">
+                        <label for="quickDeptSelect">القسم التشغيلي</label>
+                        <select id="quickDeptSelect" class="saas-select">
+                            <option value="all">جميع الأقسام (8)</option>
+                            <option value="dept-production">المحمصة والإنتاج</option>
+                            <option value="dept-quality">الجودة والـ R&D</option>
+                            <option value="dept-marketing">التسويق والعلامة</option>
+                            <option value="dept-sales">المبيعات وتطوير الأعمال</option>
+                            <option value="dept-ecommerce">التجارة الإلكترونية</option>
+                            <option value="dept-maintenance">الصيانة والدعم</option>
+                            <option value="dept-hr">الموارد البشرية</option>
+                            <option value="dept-finance">المالية والحسابات</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label>الوردية / الشفت</label>
+                        <div class="shift-pills">
+                            <button type="button" class="shift-pill active" data-shift="all">الكل</button>
+                            <button type="button" class="shift-pill" data-shift="morning">صباحي</button>
+                            <button type="button" class="shift-pill" data-shift="evening">مسائي</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="side-panel-card quick-actions-card">
+                    <div class="panel-card-title">
+                        <i class="fas fa-bolt"></i>
+                        <span>إجراءات سريعة</span>
+                    </div>
+                    <div class="quick-actions-list">
+                        <button type="button" class="quick-act-btn primary" id="btnQuickReport">
+                            <i class="fas fa-file-circle-plus"></i>
+                            <span>تقرير تشغيلي يومي</span>
+                        </button>
+                        <button type="button" class="quick-act-btn" id="btnQuickInventory">
+                            <i class="fas fa-boxes-stacked"></i>
+                            <span>فحص المخزون والبن</span>
+                        </button>
+                        <button type="button" class="quick-act-btn" id="btnQuickWaste">
+                            <i class="fas fa-trash-can"></i>
+                            <span>تسجيل هدر الحليب والبن</span>
+                        </button>
+                        <button type="button" class="quick-act-btn" id="btnQuickExport">
+                            <i class="fas fa-arrow-up-from-bracket"></i>
+                            <span>تصدير البيانات Excel/PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Roastery & Bar Status -->
+                <div class="side-panel-card status-mini-card">
+                    <div class="panel-card-title">
+                        <i class="fas fa-gauge-high"></i>
+                        <span>حالة الخطوط الحية</span>
+                    </div>
+                    <div class="status-indicators">
+                        <div class="status-row">
+                            <span class="status-name">محمصة Giesen W6A</span>
+                            <span class="badge success">جاهز للتحميص</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-name">بار عريف (Aref)</span>
+                            <span class="badge success">92% أداء</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-name">بار إيلم (Elem)</span>
+                            <span class="badge success">88% أداء</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-name">مستوى البن الأخضر</span>
+                            <span class="badge warning">إعادة طلب</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+    <!-- ====== CANDIDATE ASSIGNMENT MODAL ====== -->
+    <div id="assignModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="positionTitle">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>تسكين وتعيين مرشح — <span id="positionTitle" style="color:#0284C7;"></span></h2>
+                <button class="close-btn" type="button" onclick="closeAssignModal()" aria-label="إغلاق النافذة">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="assignForm" onsubmit="saveAssignment(event)">
+                    <div class="form-group">
+                        <label for="assignEmployeeName">اسم المرشح أو الموظف المعتمد *</label>
+                        <input type="text" id="assignEmployeeName" name="employeeName" required placeholder="مثال: فيصل المحمد">
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+                        <div class="form-group">
+                            <label for="assignStartDate">تاريخ مباشرة العمل *</label>
+                            <input type="date" id="assignStartDate" name="startDate" required value="2026-10-01">
+                        </div>
+                        <div class="form-group">
+                            <label for="assignSalary">الراتب الشهري المتفق عليه (ر.س) *</label>
+                            <input type="number" id="assignSalary" name="salary" required min="3000" step="500" value="5000">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeAssignModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> تأكيد التسكين الوظيفي</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== SCRIPTS ====== -->
+    <script src="js/departments.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "إعداد نظام إدارة تشغيلي موحد",
+      "category": "foundational",
+      "priority": "high",
+      "owner": "علاء",
+      "dueDate": "2024-03-15",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "title": "تحديد مؤشرات الأداء الرئيسية (KPIs)",
+      "category": "foundational",
+      "priority": "high",
+      "owner": "أنس",
+      "dueDate": "2024-03-18",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "title": "إطلاق حسابات السوشيال ميديا الرسمية",
+      "category": "marketing",
+      "priority": "high",
+      "owner": "قسم التسويق",
+      "dueDate": "2024-03-20",
+      "status": "in-progress"
+    },
+    {
+      "id": 4,
+      "title": "إعادة هيكلة قائمة الأسعار",
+      "category": "operational",
+      "priority": "medium",
+      "owner": "علاء + جود",
+      "dueDate": "2024-03-22",
+      "status": "scheduled"
+    },
+    {
+      "id": 5,
+      "title": "بناء قاعدة بيانات عملاء B2B",
+      "category": "operational",
+      "priority": "high",
+      "owner": "أبو محمد",
+      "dueDate": "2024-03-25",
+      "status": "scheduled"
+    }
+  ]
+}
