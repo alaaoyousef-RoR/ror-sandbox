@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="light">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,9 +22,10 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <!-- Modular CSS Architecture -->
     <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
@@ -789,9 +790,11 @@
         <span id="rorToastMessage">تمت العملية بنجاح</span>
     </div>
 
-    <!-- ====== SCRIPTS ====== -->
+    <!-- ====== MODULAR CLIENT SCRIPTS ====== -->
     <script src="js/departments.js"></script>
     <script src="js/charts.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/operations.js"></script>
+    <script src="js/sales.js"></script>
+    <script src="js/core.js"></script>
 </body>
 </html>
