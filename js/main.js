@@ -1,47 +1,442 @@
-// ====== GLOBAL STATE ======
-let currentPage = 'dashboard';
-let sidebarCollapsed = false;
+/**
+ * RoR Enterprise Suite - Core Application Engine & Data Controller
+ * Version: 2.4.0-PROD
+ * Architecture: SQLite REST API + Offline-First LocalStorage Synchronization
+ */
 
-// ====== PARTNER ACCOUNTS & PROFILES ======
+// ====== GLOBAL APPLICATION STATE ======
+window.currentPage = 'dashboard';
+window.sidebarCollapsed = false;
+
+// ====== PARTNER PROFILES (4 EQUAL EXECUTIVE FOUNDING PARTNERS) ======
 const PARTNERS = {
     'alaa': {
+        key: 'alaa',
         name: 'علاء يوسف',
         shortName: 'علاء',
         initials: 'ع ي',
-        role: 'Chief Strategic Advisor & Roastmaster',
+        role: 'Chief Strategic Advisor (CSA) & Lead Roastmaster',
         shortRole: 'Chief Strategic Advisor'
     },
     'joud': {
+        key: 'joud',
         name: 'جود القصير',
         shortName: 'جود',
         initials: 'ج ق',
-        role: 'Chief Executive Officer & CMO',
+        role: 'Chief Executive Officer & CMO (CEO & CMO)',
         shortRole: 'Chief Executive Officer'
     },
     'abdullah': {
+        key: 'abdullah',
         name: 'عبد الله القصير',
         shortName: 'عبدالله',
         initials: 'ع ق',
-        role: 'Chief Operating Officer',
+        role: 'Chief Operating Officer (COO)',
         shortRole: 'Chief Operating Officer'
     },
     'anas': {
+        key: 'anas',
         name: 'أنس الصفدي',
         shortName: 'أنس',
         initials: 'أ ص',
-        role: 'Chief Financial Officer',
+        role: 'Chief Financial Officer (CFO)',
         shortRole: 'Chief Financial Officer'
     }
 };
 
-// ====== INITIALIZATION ======
+// ===================================================================
+// DATA SERVICE: OFFLINE-FIRST SYNCHRONIZATION WITH REST API & SQLITE
+// ===================================================================
+const API_BASE = window.location.port === '5001' ? '' : 'http://localhost:5001';
+
+window.DataService = {
+    // Helper: Async fetch with fallback
+    async apiCall(endpoint, method = 'GET', body = null) {
+        try {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (body && method !== 'GET') {
+                options.body = JSON.stringify(body);
+            }
+            const res = await fetch(`${API_BASE}${endpoint}`, options);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (e) {
+            // Server offline or fetch failed; operates in offline-first mode
+            return null;
+        }
+    },
+
+    // 1. Tasks (40 Operational Blueprint)
+    getTasks() {
+        const local = localStorage.getItem('ror_tasks');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return this.getDefaultTasks();
+    },
+    saveTasks(tasks) {
+        localStorage.setItem('ror_tasks', JSON.stringify(tasks));
+        this.apiCall('/api/operations/tasks', 'POST', tasks);
+    },
+    updateTaskStatus(taskId, status) {
+        const tasks = this.getTasks();
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+            task.status = status;
+            this.saveTasks(tasks);
+            this.apiCall(`/api/operations/tasks/${taskId}`, 'PUT', { status });
+            showToast(`تم تحديث حالة المهمة #${taskId} إلى "${status === 'completed' ? 'مكتمل' : status === 'in-progress' ? 'قيد التنفيذ' : 'مجدول'}"`, 'success');
+        }
+    },
+    getDefaultTasks() {
+        return [
+            { id: 1, week: 1, task: "حصر جميع الأصول الثابتة والمعدات وتوثيق الضمانات لمقهى RoR.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
+            { id: 2, week: 1, task: "إدخال بيانات الموردين الحاليين وتثبيت شروط الدفع والائتمان.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 3, week: 1, task: "إعداد وتدقيق قائمة المكونات الأولية (Raw Materials) لجميع المشروبات والأطباق.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 4, week: 1, task: "تعيين أسعار التكلفة المعيارية (Standard Recipe Cost) للمشروبات والوجبات الرئيسية.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
+            { id: 5, week: 1, task: "ضبط أرصدة المخزون الافتتاحية للمستودع الرئيسي والثلاجات الفرعية.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 6, week: 2, task: "توزيع المهام التشغيلية اليومية لموظفي صالة RoR والبارتندرز والمطبخ.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 7, week: 2, task: "تفعيل مصفوفة المسؤوليات (RACI) وتحديد من يملك القرار النهائي لكل قسم.", cat: "حوكمة", status: "completed", responsible: "علاء" },
+            { id: 8, week: 2, task: "إعداد كتيب الموظف الداخلي (Employee Handbook) وتوضيح معايير خدمة RoR.", cat: "حوكمة", status: "completed", responsible: "أنس" },
+            { id: 9, week: 2, task: "جدولة فترات العمل (Shift Schedule) وتوزيع ساعات الذروة والهدوء أسبوعياً.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 10, week: 2, task: "تفعيل نظام تقييم الأداء الأسبوعي الأولي لفريق الخدمة والتحضير.", cat: "جودة وتطوير", status: "completed", responsible: "علاء" },
+            { id: 11, week: 3, task: "توثيق إجراءات التحضير المسبق (Prep Sheet) لخط الإنتاج الساخن والبارد.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 12, week: 3, task: "إطلاق سجل تتبع الهدر اليومي (Daily Waste Log) في المطبخ والبار.", cat: "جودة وتطوير", status: "completed", responsible: "علاء" },
+            { id: 13, week: 3, task: "تحديد الحد الأعلى والحد الأدنى للطلب (Min/Max Par Levels) لكل صنف بالمخزن.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 14, week: 3, task: "فحص وضبط معايير معايرة المكائن (Espresso Calibration, Grinder, Ovens).", cat: "جودة وتطوير", status: "completed", responsible: "علاء" },
+            { id: 15, week: 3, task: "تطبيق آلية التدقيق على الاستلام ودرجات حرارة الأغذية الواردة.", cat: "جودة وتطوير", status: "completed", responsible: "عبدالله" },
+            { id: 16, week: 4, task: "ربط وتحليل بيانات نظام البيع (POS) لاستخراج حجم المبيعات الفعلي للأسابيع الماضية.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 17, week: 4, task: "تصنيف أصناف المنيو في جدول أولي وفق هندسة القائمة (Stars, Puzzles, Plowhorses, Dogs).", cat: "تسويقية", status: "completed", responsible: "علاء" },
+            { id: 18, week: 4, task: "مراجعة أسعار بيع المشروبات الأكثر طلباً بـ RoR ومقارنتها بأسعار المنافسين.", cat: "تسويقية", status: "completed", responsible: "جود" },
+            { id: 19, week: 4, task: "حساب هامش الربح الإجمالي (Gross Margin) لكل تصنيف في منيو RoR الحالي.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 20, week: 4, task: "اتخاذ قرار مبدئي بشأن تعديل أسعار بيع الأصناف أو استبدال الأصناف الضعيفة.", cat: "حوكمة", status: "completed", responsible: "علاء" },
+            { id: 21, week: 5, task: "مراجعة حركة النقد اليومية (Daily Cash Flow Drop) ومطابقتها مع تقارير المبيعات.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 22, week: 5, task: "جدولة فواتير الموردين المستحقة وتوزيع دفعاتها لتجنب انقطاع التوريد.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 23, week: 5, task: "حصر الذمم المدينة (مبيعات الشركات/الفعاليات لـ RoR) ومتابعة تحصيل المدفوعات.", cat: "مبيعات وجملة", status: "completed", responsible: "جود" },
+            { id: 24, week: 5, task: "إنشاء صندوق النثرية (Petty Cash) وتحديد صلاحيات صرفه وتوثيق فواتيره السريعة.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 25, week: 5, task: "تحليل المصاريف التشغيلية الثابتة والمتغيرة وربطها بنقطة التعادل المستهدفة.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
+            { id: 26, week: 6, task: "تطبيق قائمة التدقيق البيئية والصحية والبلدية الداخلية بـ RoR.", cat: "جودة وتطوير", status: "completed", responsible: "عبدالله" },
+            { id: 27, week: 6, task: "تفعيل منبه التراخيص القانونية والصحية وفترات تجديد سجلات وتراخيص مقهى RoR.", cat: "حوكمة", status: "completed", responsible: "أنس" },
+            { id: 28, week: 6, task: "إجراء فحص سري للمتسوق الخفي (Mystery Shopper) لتقييم كفاءة الخدمة وسرعتها.", cat: "جودة وتطوير", status: "completed", responsible: "جود" },
+            { id: 29, week: 6, task: "مراجعة شكاوى وملاحظات العملاء على منصات التقييم (Google Maps / Social Media).", cat: "تسويقية", status: "completed", responsible: "جود" },
+            { id: 30, week: 6, task: "تدريب فريق العمل بـ RoR على سيناريوهات التعامل مع ضغط العمل وشكاوى العملاء المباشرة.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
+            { id: 31, week: 7, task: "حساب تكلفة الغذاء الفعلية (Actual Food Cost) ومقارنتها بالمعيارية المخطط لها.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
+            { id: 32, week: 7, task: "احتساب تكلفة العمالة الإجمالية (Labor Cost %) كنسبة مئوية من المبيعات الفعلية.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
+            { id: 33, week: 7, task: "تحديد التكلفة الأساسية (Prime Cost) والتأكد من أنها ضمن النطاق المالي الآمن (<60%).", cat: "مالية وتكاليف", status: "in-progress", responsible: "علاء" },
+            { id: 34, week: 7, task: "إعداد تقرير التباين الأسبوعي (Variance Report) بين الاستهلاك الفعلي والمعياري للمواد.", cat: "جودة وتطوير", status: "in-progress", responsible: "عبدالله" },
+            { id: 35, week: 7, task: "وضع خطة عمل فورية لمعالجة الفروقات في المواد المرتفعة التكلفة.", cat: "تشغيلية", status: "pending", responsible: "علاء" },
+            { id: 36, week: 8, task: "تطوير لوحة قيادة الأداء النهائية (Final Performance Dashboard) الشاملة لجميع المؤشرات.", cat: "حوكمة", status: "pending", responsible: "علاء" },
+            { id: 37, week: 8, task: "عرض التقرير المالي النهائي ومقارنة النتائج الفعلية بالأهداف المستهدفة بـ RoR.", cat: "مالية وتكاليف", status: "pending", responsible: "أنس" },
+            { id: 38, week: 8, task: "تثبيت مصفوفة الصلاحيات الدائمة (Final RACI) وتحديث الوصف الوظيفي لجميع العاملين.", cat: "حوكمة", status: "pending", responsible: "عبدالله" },
+            { id: 39, week: 8, task: "تسليم أدلة التشغيل القياسية المحدثة (SOPs) لمدراء الفروع والورديات.", cat: "تشغيلية", status: "pending", responsible: "علاء" },
+            { id: 40, week: 8, task: "عقد اجتماع الإغلاق والتقييم النهائي مع الإدارة واعتماد خطة التوسع المستقبلية.", cat: "حوكمة", status: "pending", responsible: "علاء" }
+        ];
+    },
+
+    // 2. Café Bar Shift Reports (Aref & Elem)
+    getCafeSales() {
+        const local = localStorage.getItem('ror_cafe_sales');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return [
+            { id: 1, date: "2026-09-15", shift: "صباحي (عارف)", barista: "عارف", cups: 72, desserts: 14, revenue: 1320, tickets: 53, avgTicket: 24.9, notes: "إقبال ممتاز على قهوة اليوم والكرواسون" },
+            { id: 2, date: "2026-09-14", shift: "مسائي (علم)", barista: "علم", cups: 92, desserts: 22, revenue: 1720, tickets: 64, avgTicket: 26.8, notes: "ذروة مسائية عالية ومبيعات كولد برو ممتازة" },
+            { id: 3, date: "2026-09-14", shift: "صباحي (عارف)", barista: "عارف", cups: 65, desserts: 11, revenue: 1185, tickets: 48, avgTicket: 24.6, notes: "حركة منتظمة ومعايرة ممتازة للفلتر" },
+            { id: 4, date: "2026-09-13", shift: "مسائي (علم)", barista: "علم", cups: 88, desserts: 19, revenue: 1590, tickets: 60, avgTicket: 26.5, notes: "طلب عالي على الحلى والمشروبات الباردة" },
+            { id: 5, date: "2026-09-13", shift: "صباحي (عارف)", barista: "عارف", cups: 58, desserts: 9, revenue: 1040, tickets: 42, avgTicket: 24.7, notes: "فترة الصباح هادئة ومبيعات بن منزلي" }
+        ];
+    },
+    addCafeSale(shift) {
+        const list = this.getCafeSales();
+        shift.id = Date.now();
+        list.unshift(shift);
+        localStorage.setItem('ror_cafe_sales', JSON.stringify(list));
+        this.apiCall('/api/sales/cafe', 'POST', shift);
+        showToast('تم تسجيل تقرير وردية البار بنجاح وحفظه في النظام', 'success');
+    },
+
+    // 3. Roastery Batches & B2B Invoices
+    getRoasterySales() {
+        const local = localStorage.getItem('ror_roast_sales');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return [
+            { id: 1, date: "2026-09-15", client: "مقهى الأفق (حائل)", roastProfile: "بروفايل كولومبي", greenKg: 58, roastedKg: 50, roastLossPct: 13.8, pricePerKg: 75, type: "wholesale", paid: 3750, pending: 0, status: "مكتمل", notes: "تسليم مباشر عبر الحماصة الرائدة" },
+            { id: 2, date: "2026-09-14", client: "مبيعات رف الفرع (أرباع 250جم)", roastProfile: "بروفايل شلشلي", greenKg: 29, roastedKg: 25, roastLossPct: 13.8, pricePerKg: 110, type: "retail", paid: 2750, pending: 0, status: "مكتمل", notes: "تغليف أكياس ربع للرف" },
+            { id: 3, date: "2026-09-12", client: "سلسلة مقاهي نجد المختصة", roastProfile: "خلطة RoR", greenKg: 93, roastedKg: 80, roastLossPct: 14.0, pricePerKg: 82, type: "wholesale", paid: 6560, pending: 0, status: "مكتمل", notes: "عقد توريد شهري" },
+            { id: 4, date: "2026-09-10", client: "متجر RoR الإلكتروني (أرباع 250جم)", roastProfile: "تارازو كوستاريكا", greenKg: 21, roastedKg: 18, roastLossPct: 14.3, pricePerKg: 95, type: "retail", paid: 1710, pending: 0, status: "مكتمل", notes: "طلبيات الشحن السريع" }
+        ];
+    },
+    addRoasterySale(batch) {
+        const list = this.getRoasterySales();
+        batch.id = Date.now();
+        list.unshift(batch);
+        localStorage.setItem('ror_roast_sales', JSON.stringify(list));
+        this.apiCall('/api/sales/roastery', 'POST', batch);
+        if (batch.roastLossPct > 18.0) {
+            showToast('تحذير: نسبة فقد وزن التحميص تجاوزت 18%!', 'warning');
+        } else {
+            showToast('تم تسجيل دفعة التحميص وفاتورة التوريد بنجاح', 'success');
+        }
+    },
+
+    // 4. Waste Tracking
+    getWasteLogs() {
+        const local = localStorage.getItem('ror_waste');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return [
+            { id: 1, date: "2026-09-15", category: "coffee", item: "بن مطحون (معايرة الصباح)", quantity: 0.45, unit: "كجم", costSAR: 45.0, reason: "معايرة طاحونة الإسبريسو بعد تنظيف الشفرات", reportedBy: "عارف", shift: "morning" },
+            { id: 2, date: "2026-09-15", category: "milk", item: "حليب طازج نادك", quantity: 2.0, unit: "لتر", costSAR: 18.0, reason: "بقايا تبخير زائد وقت الذروة", reportedBy: "علم", shift: "evening" },
+            { id: 3, date: "2026-09-14", category: "pastry", item: "كرواسون زعتر وجبن", quantity: 3.0, unit: "قطعة", costSAR: 24.0, reason: "انتهاء الصلاحية اليومية للعرض", reportedBy: "علم", shift: "evening" },
+            { id: 4, date: "2026-09-13", category: "coffee", item: "حبوب محروقة (أول دفعة)", quantity: 0.5, unit: "كجم", costSAR: 35.0, reason: "ارتفاع حرارة الدرام المفاجئ", reportedBy: "علاء", shift: "morning" }
+        ];
+    },
+    addWasteLog(log) {
+        const list = this.getWasteLogs();
+        log.id = Date.now();
+        list.unshift(log);
+        localStorage.setItem('ror_waste', JSON.stringify(list));
+        this.apiCall('/api/operations/waste', 'POST', log);
+
+        // Check daily waste guardrail (>100 SAR)
+        const todayStr = log.date || new Date().toISOString().split('T')[0];
+        const dayTotal = list.filter(w => w.date === todayStr).reduce((sum, w) => sum + (parseFloat(w.costSAR) || 0), 0);
+        if (dayTotal > 100.0) {
+            showToast(`تنبيه مالي: إجمالي الهدر اليوم (${dayTotal} ر.س) تجاوز سقف الأمان اليومي (100 ر.س)!`, 'warning');
+        } else {
+            showToast('تم تسجيل واقعة الهدر بنجاح', 'success');
+        }
+    },
+    deleteWasteLog(id) {
+        let list = this.getWasteLogs();
+        list = list.filter(w => w.id !== id);
+        localStorage.setItem('ror_waste', JSON.stringify(list));
+        this.apiCall(`/api/operations/waste/${id}`, 'DELETE');
+        showToast('تم حذف سجل الهدر', 'success');
+    },
+
+    // 5. Menu Items & 2D Matrix
+    getMenuItems() {
+        const local = localStorage.getItem('ror_menu');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return [
+            { id: 1, name: "V60 إثيوبي شلشلي", category: "مشروبات ساخنة", price: 18.0, cost: 4.5, popularity: 8, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
+            { id: 2, name: "فلات وايت RoR", category: "مشروبات ساخنة", price: 15.0, cost: 3.8, popularity: 9, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
+            { id: 3, name: "قهوة اليوم كولومبي", category: "مشروبات ساخنة", price: 9.0, cost: 1.8, popularity: 10, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
+            { id: 4, name: "سبانش لاتيه RoR", category: "مشروبات ساخنة", price: 19.0, cost: 5.5, popularity: 8, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
+            { id: 5, name: "كولد برو مقطر RoR", category: "مشروبات باردة", price: 21.0, cost: 5.2, popularity: 6, classType: "puzzles", label: "لغز (Puzzle)", badge: "badge-blue", icon: "fa-circle-question" },
+            { id: 6, name: "كيكة التمر بالكراميل", category: "حلويات ومخبوزات", price: 16.0, cost: 4.0, popularity: 5, classType: "puzzles", label: "لغز (Puzzle)", badge: "badge-blue", icon: "fa-circle-question" },
+            { id: 7, name: "كورتادو كلاسيك", category: "مشروبات ساخنة", price: 14.0, cost: 3.2, popularity: 7, classType: "plowhorses", label: "حصان (Plowhorse)", badge: "badge-warning", icon: "fa-horse" },
+            { id: 8, name: "شاي إنجليزي فاخر", category: "مشروبات ساخنة", price: 8.0, cost: 1.2, popularity: 3, classType: "dogs", label: "منخفض (Dog)", badge: "badge-danger", icon: "fa-paw" }
+        ];
+    },
+    saveMenuItem(item) {
+        const list = this.getMenuItems();
+        item.id = Date.now();
+        // Classify
+        const margin = item.price - item.cost;
+        const highContrib = margin >= 10.0;
+        const highPop = item.popularity >= 7;
+        if (highContrib && highPop) {
+            item.classType = 'stars'; item.label = 'نجم (Star)'; item.badge = 'badge-green'; item.icon = 'fa-star';
+        } else if (!highContrib && highPop) {
+            item.classType = 'plowhorses'; item.label = 'حصان (Plowhorse)'; item.badge = 'badge-warning'; item.icon = 'fa-horse';
+        } else if (highContrib && !highPop) {
+            item.classType = 'puzzles'; item.label = 'لغز (Puzzle)'; item.badge = 'badge-blue'; item.icon = 'fa-circle-question';
+        } else {
+            item.classType = 'dogs'; item.label = 'منخفض (Dog)'; item.badge = 'badge-danger'; item.icon = 'fa-paw';
+        }
+        list.push(item);
+        localStorage.setItem('ror_menu', JSON.stringify(list));
+        this.apiCall('/api/operations/menu', 'POST', item);
+        showToast('تمت إضافة الصنف إلى قائمة المنيو وتصنيفه تلقائياً', 'success');
+    },
+
+    // 6. Department Custom Tasks
+    getDeptTasks(deptKey = null) {
+        const local = localStorage.getItem('ror_dept_tasks');
+        let list = [];
+        if (local) {
+            try { list = JSON.parse(local); } catch (e) {}
+        }
+        if (deptKey) {
+            return list.filter(t => t.deptKey === deptKey);
+        }
+        return list;
+    },
+    addDeptTask(task) {
+        const list = this.getDeptTasks();
+        task.id = `dt-${Date.now()}`;
+        task.status = 'pending';
+        task.createdAt = new Date().toISOString();
+        list.unshift(task);
+        localStorage.setItem('ror_dept_tasks', JSON.stringify(list));
+        this.apiCall('/api/operations/dept_tasks', 'POST', task);
+        showToast('تمت إضافة المهمة إلى القسم بنجاح', 'success');
+    },
+    updateDeptTaskStatus(taskId, status) {
+        const list = this.getDeptTasks();
+        const task = list.find(t => t.id === taskId);
+        if (task) {
+            task.status = status;
+            localStorage.setItem('ror_dept_tasks', JSON.stringify(list));
+            this.apiCall(`/api/operations/dept_tasks/${taskId}`, 'PUT', { status });
+            showToast('تم تحديث حالة المهمة', 'success');
+        }
+    },
+    deleteDeptTask(taskId) {
+        let list = this.getDeptTasks();
+        list = list.filter(t => t.id !== taskId);
+        localStorage.setItem('ror_dept_tasks', JSON.stringify(list));
+        this.apiCall(`/api/operations/dept_tasks/${taskId}`, 'DELETE');
+        showToast('تم حذف المهمة', 'success');
+    },
+
+    // 7. Break-Even Dynamic Config
+    getBreakevenConfig() {
+        const local = localStorage.getItem('ror_breakeven');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return {
+            fixedCosts: 28000,
+            avgCupPrice: 18,
+            variableRatio: 0.42
+        };
+    },
+    saveBreakevenConfig(cfg) {
+        localStorage.setItem('ror_breakeven', JSON.stringify(cfg));
+    },
+
+    // 8. Financial Commitments
+    getFinancials() {
+        const local = localStorage.getItem('ror_financials');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return [
+            { id: 1, title: "الإيجار الشهري", amount: 12000, dueDate: "2026-10-01", paymentMethod: "تحويل بنكي", status: "paid", type: "fixed" },
+            { id: 2, title: "فاتورة الكهرباء والمياه", amount: 3200, dueDate: "2026-09-20", paymentMethod: "SADAD", status: "pending", type: "fixed" },
+            { id: 3, title: "المقابل المالي والتراخيص", amount: 800, dueDate: "2026-09-15", paymentMethod: "تحويل بنكي", status: "paid", type: "fixed" },
+            { id: 4, title: "التأمينات الاجتماعية GOSI", amount: 1800, dueDate: "2026-10-10", paymentMethod: "خصم تلقائي", status: "paid", type: "fixed" },
+            { id: 5, title: "اشتراك نظام نقاط البيع Foodics", amount: 299, dueDate: "2026-10-05", paymentMethod: "بطاقة ائتمان", status: "paid", type: "fixed" },
+            { id: 6, title: "شحنة بن أخضر كولومبي وإثيوبي", amount: 14500, dueDate: "2026-09-25", paymentMethod: "تحويل بنكي", status: "pending", type: "variable" }
+        ];
+    },
+
+    // 9. Development Pipeline
+    getDevPipeline() {
+        const local = localStorage.getItem('ror_dev_pipeline');
+        if (local) {
+            try { return JSON.parse(local); } catch (e) {}
+        }
+        return [
+            { id: 1, category: "training", title: "برنامج تدريب الباريستا المتقدم (SCA Foundation)", description: "تدريب عملي على تكنيك تبخير الحليب ومعايرة طواحين الإسبريسو", progressPct: 75, owner: "علاء يوسف", targetDate: "2026-10-01", status: "in-progress" },
+            { id: 2, category: "sop", title: "دليل تشغيل وافتتاح محطة البار اليومية", description: "معايير النظافة الصباحية، تسخين البويلرات، واختبار جودة المياه", progressPct: 90, owner: "عبد الله القصير", targetDate: "2026-09-25", status: "in-progress" },
+            { id: 3, category: "automation", title: "ربط تلقائي بين نظام المحمصة ونقاط البيع POS", description: "مزامنة فورية لأرصدة أكياس الربع مع كاشير الفرع والمتجر", progressPct: 60, owner: "جود القصير", targetDate: "2026-10-15", status: "in-progress" },
+            { id: 4, category: "innovation", title: "تطوير خط إنتاج قهوة باردة معلبة RTD", description: "تجارب تحضير كولد برو نيترو وتعبئة عبوات زجاجية لعملاء الجملة", progressPct: 40, owner: "علاء + جود", targetDate: "2026-11-01", status: "in-progress" }
+        ];
+    },
+
+    // 10. Org Structure Roles
+    getOrgStructure() {
+        const local = localStorage.getItem('ror_org_structure');
+        if (local) {
+            try { 
+                const parsed = JSON.parse(local);
+                return parsed.roles || [];
+            } catch (e) {}
+        }
+        return [];
+    },
+    saveOrgStructure(roles) {
+        localStorage.setItem('ror_org_structure', JSON.stringify({ roles }));
+        this.apiCall('/api/operations/org_structure', 'POST', { roles });
+    },
+
+    // Background server initial sync
+    async syncWithBackend() {
+        const res = await this.apiCall('/api/system/backup');
+        if (res && res.data) {
+            // Server is online with live database
+            const statusEl = document.getElementById('dayNightStatus');
+            if (statusEl) {
+                const dot = statusEl.querySelector('.pulse-green-dot');
+                if (dot) dot.setAttribute('title', 'متصل بالخادم المحلي وقاعدة البيانات SQLite');
+            }
+        }
+    }
+};
+
+// ===================================================================
+// INITIALIZATION ON DOM READY
+// ===================================================================
 document.addEventListener('DOMContentLoaded', function () {
     initializeSidebar();
     initializeDateTime();
     initializeUserDropdown();
+    initializeDarkMode();
     loadPage('dashboard');
     setInterval(updateDateTime, 1000);
+
+    // Initial background sync
+    setTimeout(() => {
+        if (window.DataService) window.DataService.syncWithBackend();
+    }, 500);
 });
+
+// ====== DARK MODE TOGGLE (PERSISTENT, ICON-AWARE) ======
+function initializeDarkMode() {
+    const savedTheme = localStorage.getItem('ror_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const icon = document.getElementById('darkModeIcon');
+    if (icon) {
+        icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+}
+
+function toggleDarkMode() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('ror_theme', newTheme);
+
+    const icon = document.getElementById('darkModeIcon');
+    if (icon) {
+        icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    showToast(
+        newTheme === 'dark' ? 'تم تفعيل الوضع الداكن (Night Mode)' : 'تم تفعيل الوضع الفاتح (Day Mode)',
+        'success'
+    );
+
+    // Update Chart.js defaults to match theme
+    if (typeof Chart !== 'undefined') {
+        const isDark = newTheme === 'dark';
+        Chart.defaults.color = isDark ? '#94A3B8' : '#64748B';
+        Chart.defaults.borderColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0, 0, 0, 0.05)';
+        Chart.defaults.plugins.tooltip.backgroundColor = isDark ? '#1D1F24' : '#0F172A';
+        // Re-render active chart if visible
+        if (window.currentPage) {
+            setTimeout(() => {
+                if (typeof initializePageSpecific === 'function') {
+                    initializePageSpecific(window.currentPage);
+                }
+            }, 150);
+        }
+    }
+}
 
 // ====== SIDEBAR & WORKSPACE PANELS ======
 function initializeSidebar() {
@@ -53,11 +448,11 @@ function initializeSidebar() {
     const navPageItems   = document.querySelectorAll('.nav-item[data-page]');
     const expandables    = document.querySelectorAll('.nav-item.expandable');
 
-    // Desktop Toggle collapse
+    // Desktop Toggle collapse (smooth 0.3s transition)
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
-            sidebarCollapsed = sidebar.classList.contains('collapsed');
+            window.sidebarCollapsed = sidebar.classList.contains('collapsed');
         });
     }
 
@@ -68,7 +463,7 @@ function initializeSidebar() {
         });
     }
 
-    // Right Side Panel / Drawer Toggle
+    // Right Side Panel Toggle
     if (togglePanelBtn && sidePanel) {
         togglePanelBtn.addEventListener('click', () => {
             sidePanel.classList.toggle('open');
@@ -90,8 +485,6 @@ function initializeSidebar() {
             if (this.value !== 'all') {
                 loadPage(this.value);
                 document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                const activeNav = document.getElementById('nav-' + this.value.replace('dept-', ''));
-                if (activeNav) activeNav.classList.add('active');
             }
         });
     }
@@ -99,12 +492,11 @@ function initializeSidebar() {
     // Expandable submenus
     expandables.forEach(item => {
         item.addEventListener('click', function () {
-            if (sidebarCollapsed) return;
+            if (window.sidebarCollapsed) return;
             const submenuId = this.id.replace('Toggle', 'Submenu');
             const submenu   = document.getElementById(submenuId);
             if (!submenu) return;
 
-            // Close others
             document.querySelectorAll('.nav-submenu').forEach(m => {
                 if (m.id !== submenuId) {
                     m.classList.remove('show');
@@ -118,33 +510,34 @@ function initializeSidebar() {
         });
     });
 
-    // Page navigation
+    // Page navigation click handler
     navPageItems.forEach(item => {
         item.addEventListener('click', function () {
             const page = this.getAttribute('data-page');
             loadPage(page);
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             this.classList.add('active');
-            // Close mobile sidebar if open
             if (sidebar) sidebar.classList.remove('mobile-open');
         });
     });
 
-    // Top Search Input Hook
+    // Top Search Input Filter Hook
     const topSearchInput = document.getElementById('topSearchInput');
     if (topSearchInput) {
         topSearchInput.addEventListener('input', function () {
             const query = this.value.trim();
-            if (currentPage === 'org-chart' && typeof searchBlueprint === 'function') {
+            if (window.currentPage === 'org-chart' && typeof searchBlueprint === 'function') {
                 searchBlueprint(query);
-            } else if (currentPage === '40-tasks' && typeof filterTasksByText === 'function') {
+            } else if (window.currentPage === '40-tasks' && typeof filterTasksByText === 'function') {
                 filterTasksByText(query);
+            } else if (window.currentPage === 'menu-engineering' && typeof filterMenuByText === 'function') {
+                filterMenuByText(query);
             }
         });
     }
 }
 
-// ====== DATE & TIME + DYNAMIC TIME-AWARE GREETING (Western Numerals Lock) ======
+// ====== DATE & TIME + DYNAMIC TIME-AWARE GREETING (WESTERN NUMERALS) ======
 function initializeDateTime() { updateDateTime(); }
 
 function updateDateTime() {
@@ -159,11 +552,11 @@ function updateDateTime() {
     if (hour >= 5 && hour < 12) {
         greetingText = `صباح مبارك، ${partner.shortName}`;
         greetingIcon = 'fa-sun text-amber';
-    } else if (hour >= 12 && hour < 16) {
+    } else if (hour >= 12 && hour < 17) {
         greetingText = `ظهرًا مباركًا، ${partner.shortName}`;
         greetingIcon = 'fa-sun text-amber';
     } else {
-        greetingText = `مساء مبارك، ${partner.shortName}`;
+        greetingText = `مساء الخير، ${partner.shortName}`;
         greetingIcon = 'fa-moon text-indigo';
     }
 
@@ -172,7 +565,7 @@ function updateDateTime() {
     if (greetingTextEl) greetingTextEl.textContent = greetingText;
     if (greetingIconEl) greetingIconEl.className = `fas ${greetingIcon}`;
 
-    // Live formatted date and time with Western Numerals (0-9)
+    // Western Numerals (0-9) via 'ar-SA-u-nu-latn'
     const dateFormatted = now.toLocaleDateString('ar-SA-u-nu-latn', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
@@ -186,7 +579,7 @@ function updateDateTime() {
     }
 }
 
-// ====== USER PROFILE & MULTI-PARTNER ACCOUNT SWITCHER ======
+// ====== MULTI-PARTNER ACCOUNT SWITCHER ======
 function initializeUserDropdown() {
     const menuWrap   = document.getElementById('userProfileMenuWrap');
     const triggerBtn = document.getElementById('userMenuBtn');
@@ -209,8 +602,10 @@ function initializeUserDropdown() {
         if (popoverName)   popoverName.textContent   = partner.name;
         if (popoverRole)   popoverRole.textContent   = partner.role;
 
-        document.querySelectorAll('.partner-switch-item').forEach(item => {
-            if (item.getAttribute('data-partner') === partnerKey) {
+        // Support both partner-item and partner-switch-item
+        document.querySelectorAll('.partner-item, .partner-switch-item').forEach(item => {
+            const itemKey = item.getAttribute('data-user') || item.getAttribute('data-partner');
+            if (itemKey === partnerKey) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
@@ -220,7 +615,6 @@ function initializeUserDropdown() {
         updateDateTime();
     }
 
-    // Load saved partner
     const savedPartner = localStorage.getItem('ror_active_partner') || 'alaa';
     updateActivePartnerUI(savedPartner);
 
@@ -238,23 +632,25 @@ function initializeUserDropdown() {
         }
     });
 
-    document.querySelectorAll('.partner-switch-item').forEach(btn => {
+    // Partner items switcher click hook
+    document.querySelectorAll('.partner-item, .partner-switch-item').forEach(btn => {
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
-            const partnerKey = this.getAttribute('data-partner');
+            const partnerKey = this.getAttribute('data-user') || this.getAttribute('data-partner');
             if (partnerKey && PARTNERS[partnerKey]) {
                 localStorage.setItem('ror_active_partner', partnerKey);
                 updateActivePartnerUI(partnerKey);
                 popover.classList.remove('show');
                 triggerBtn.setAttribute('aria-expanded', 'false');
+                showToast(`تم تبديل الحساب النشط إلى: ${PARTNERS[partnerKey].name}`, 'success');
             }
         });
     });
 }
 
-// ====== PAGE LOADER ======
+// ====== SAFE PAGE LOADER (ZERO BLANK STATES) ======
 function loadPage(page) {
-    currentPage = page;
+    window.currentPage = page;
     const contentArea = document.getElementById('contentArea');
     const pageTitle   = document.getElementById('pageTitle');
 
@@ -279,7 +675,7 @@ function loadPage(page) {
         'dept-ecommerce':         { title: 'قسم التجارة الإلكترونية واللوجستيات',          fn: () => getDepartmentContent('ecommerce') },
         'dept-maintenance':       { title: 'قسم الصيانة والدعم الفني',                    fn: () => getDepartmentContent('maintenance') },
         'dept-hr':                { title: 'قسم الموارد البشرية',                         fn: () => getDepartmentContent('hr') },
-        'dept-finance':           { title: 'قسم المالية',                                  fn: () => getDepartmentContent('finance') },
+        'dept-finance':           { title: 'قسم المالية والحسابات',                       fn: () => getDepartmentContent('finance') },
         'dept-procurement':       { title: 'قسم المشتريات والتوريد وسلاسل الإمداد',       fn: () => getDepartmentContent('procurement') },
         'org-chart':              { title: 'الهيكل التنظيمي',                              fn: getOrgChartContent },
         'team-roles':             { title: 'مهام فريق RoR',                               fn: getTeamRolesContent },
@@ -288,141 +684,208 @@ function loadPage(page) {
     };
 
     const pageData = pages[page] || pages['dashboard'];
-    pageTitle.textContent   = pageData.title;
-    contentArea.innerHTML   = pageData.fn();
 
-    // Specific post-render initialization
+    // Safe null-check for pageTitle element
+    if (pageTitle) {
+        pageTitle.textContent = pageData.title;
+    }
+
+    if (contentArea) {
+        try {
+            contentArea.innerHTML = pageData.fn();
+        } catch (err) {
+            console.error('Error rendering page:', page, err);
+            contentArea.innerHTML = `<div class="alert danger">حدث خطأ أثناء تحميل الصفحة (${page}): ${err.message}</div>`;
+        }
+    }
+
+    // Post-render specific initializations
     if (page === 'org-chart' && typeof refreshOrgCardsFromStorage === 'function') {
         refreshOrgCardsFromStorage();
     }
 
-    // Initialize chart logic after DOM update
+    if (page === 'breakeven' && typeof initializeBreakevenSliders === 'function') {
+        initializeBreakevenSliders();
+    }
+
     if (typeof initializePageSpecific === 'function') {
-        initializePageSpecific(page);
+        setTimeout(() => initializePageSpecific(page), 50);
     }
 }
 
-// ========================================================
-// ==================  PAGE CONTENT  ======================
-// ========================================================
-
-// ====== DASHBOARD ======
+// ===================================================================
+// 1. DASHBOARD WITH DYNAMIC DAILY BREAK-EVEN INDICATOR
+// ===================================================================
 function getDashboardContent() {
+    const cafeSales = window.DataService.getCafeSales();
+    const roastSales = window.DataService.getRoasterySales();
+    const breakevenCfg = window.DataService.getBreakevenConfig();
+
+    // Dynamic Today's Date String (always uses current local date)
+    const todayDate = new Date();
+    const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
+
+    // Calculate Today's combined revenue
+    const todayCafeRev = cafeSales.filter(s => s.date === todayStr).reduce((sum, s) => sum + (parseFloat(s.revenue) || 0), 0);
+    const todayRoastRev = roastSales.filter(r => r.date === todayStr).reduce((sum, r) => sum + (parseFloat(r.paid) || 0), 0);
+    const totalTodaySales = todayCafeRev + todayRoastRev;
+
+    // Daily operational cost floor from Break-Even
+    const dailyCostFloor = Math.round((breakevenCfg.fixedCosts / (1 - breakevenCfg.variableRatio)) / 30);
+    const isFloorPassed = totalTodaySales >= dailyCostFloor;
+    const variance = totalTodaySales - dailyCostFloor;
+
+    const totalOrdersToday = cafeSales.filter(s => s.date === todayStr).reduce((sum, s) => sum + (parseInt(s.tickets) || 0), 0) + roastSales.filter(r => r.date === todayStr).length;
+
     return `
-        <div class="page-header">
-            <h2 class="page-title">مرحباً بك في نظام RoR التشغيلي</h2>
-            <p class="page-subtitle">نظرة شاملة على الأداء والعمليات — ${new Date().toLocaleDateString('ar-SA', {year:'numeric',month:'long',day:'numeric'})}</p>
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 class="page-title">مرحباً بك في نظام RoR التشغيلي المتكامل</h2>
+                <p class="page-subtitle">نظرة عامة على أداء المقهى، الحماصة الرائدة، والمؤشرات التشغيلية الحية — ${new Date().toLocaleDateString('ar-SA-u-nu-latn', {year:'numeric',month:'long',day:'numeric'})}</p>
+            </div>
+            <!-- Dynamic Daily Cost Floor Pill -->
+            <div class="${isFloorPassed ? 'daily-floor-badge passed' : 'daily-floor-badge below'}">
+                <i class="fas ${isFloorPassed ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i>
+                <span>
+                    ${isFloorPassed 
+                        ? `تم تجاوز سقف التكلفة اليومي بنجاح (+${variance.toLocaleString('en-US')} ر.س فائض أمان)`
+                        : `المبيعات الحالية تحت سقف التعادل اليومي (متبقي ${Math.abs(variance).toLocaleString('en-US')} ر.س للتعادل)`
+                    }
+                </span>
+            </div>
         </div>
 
+        <!-- 4 Core Metric KPI Cards -->
         <div class="stats-grid">
             <div class="stat-card primary">
                 <div class="stat-header">
-                    <span class="stat-title">مبيعات اليوم</span>
-                    <div class="stat-icon primary"><i class="fas fa-dollar-sign"></i></div>
+                    <span class="stat-title">إجمالي مبيعات اليوم (البار + المحمصة)</span>
+                    <div class="stat-icon primary"><i class="fas fa-cash-register"></i></div>
                 </div>
-                <div class="stat-value">2,450 ريال</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>12% عن الأمس</span></div>
+                <div class="stat-value">${totalTodaySales.toLocaleString('en-US')} ر.س</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>البار: ${todayCafeRev.toLocaleString('en-US')} ر.س | المحمصة: ${todayRoastRev.toLocaleString('en-US')} ر.س</span>
+                </div>
             </div>
+
             <div class="stat-card success">
                 <div class="stat-header">
-                    <span class="stat-title">عدد الطلبات</span>
-                    <div class="stat-icon success"><i class="fas fa-shopping-cart"></i></div>
+                    <span class="stat-title">عدد العمليات والطلبات</span>
+                    <div class="stat-icon success"><i class="fas fa-receipt"></i></div>
                 </div>
-                <div class="stat-value">87 طلب</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>8% عن الأمس</span></div>
+                <div class="stat-value">${totalOrdersToday || 54} طلب</div>
+                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>معدل تدفق متوازن</span></div>
             </div>
+
             <div class="stat-card warning">
                 <div class="stat-header">
-                    <span class="stat-title">متوسط الفاتورة</span>
-                    <div class="stat-icon warning"><i class="fas fa-receipt"></i></div>
+                    <span class="stat-title">سقف التكلفة اليومي للتعادل</span>
+                    <div class="stat-icon warning"><i class="fas fa-scale-balanced"></i></div>
                 </div>
-                <div class="stat-value">28 ريال</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>4% عن الأمس</span></div>
+                <div class="stat-value">${dailyCostFloor.toLocaleString('en-US')} ر.س</div>
+                <div class="stat-change"><span>تغطية الإيجار، الرواتب، والخامات</span></div>
             </div>
-            <div class="stat-card danger">
+
+            <div class="stat-card info">
                 <div class="stat-header">
-                    <span class="stat-title">المخزون المنخفض</span>
-                    <div class="stat-icon danger"><i class="fas fa-exclamation-triangle"></i></div>
+                    <span class="stat-title">الحماصة الرائدة</span>
+                    <div class="stat-icon primary"><i class="fas fa-fire-burner"></i></div>
                 </div>
-                <div class="stat-value">5 منتجات</div>
-                <div class="stat-change negative"><i class="fas fa-arrow-down"></i> <span>يحتاج إعادة طلب</span></div>
+                <div class="stat-value">جاهزية 100%</div>
+                <div class="stat-change positive"><span>معدل الفقد الطبيعي (<14.5%)</span></div>
             </div>
         </div>
 
+        <!-- Revenue Charts Grid -->
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-header"><h3 class="chart-title">مبيعات الأسبوع (ريال)</h3></div>
+                <div class="chart-header">
+                    <h3 class="chart-title"><i class="fas fa-chart-line" style="color:#0284C7;margin-left:6px;"></i> مسار مبيعات الأسبوع (ريال سعودي)</h3>
+                </div>
                 <div class="chart-container"><canvas id="weekSalesChart"></canvas></div>
             </div>
             <div class="chart-card">
-                <div class="chart-header"><h3 class="chart-title">توزيع المنتجات</h3></div>
+                <div class="chart-header">
+                    <h3 class="chart-title"><i class="fas fa-chart-pie" style="color:#10B981;margin-left:6px;"></i> توزيع مصادر الإيراد (المقهى vs المحمصة)</h3>
+                </div>
                 <div class="chart-container"><canvas id="productDistChart"></canvas></div>
             </div>
         </div>
 
+        <!-- Recent Operations Table -->
         <div class="table-card">
             <div class="table-header">
-                <h3 class="table-title">آخر العمليات</h3>
-                <button class="btn btn-outline" id="viewAllOpsBtn"><i class="fas fa-eye"></i> عرض الكل</button>
+                <div>
+                    <h3 class="table-title">سجل العمليات التشغيلية الأخيرة</h3>
+                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات مسجلة وموثقة من قبل الشركاء وفريق البار</p>
+                </div>
+                <button type="button" class="btn btn-outline" onclick="loadPage('40-tasks')"><i class="fas fa-list-check"></i> خطة الـ 40 مهمة</button>
             </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>الوقت</th><th>النشاط</th><th>القسم</th><th>المسؤول</th><th>الحالة</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>الوقت</th>
+                            <th>النشاط التشغيلي</th>
+                            <th>القسم</th>
+                            <th>المسؤول</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td>10:30 ص</td><td>تحميص دفعة جديدة - إثيوبيا</td><td>المحمصة</td><td>علاء يوسف</td><td><span class="badge success">مكتمل</span></td></tr>
-                        <tr><td>11:15 ص</td><td>طلب جملة - 20 كيلو</td><td>المبيعات</td><td>أبو محمد</td><td><span class="badge warning">قيد المعالجة</span></td></tr>
-                        <tr><td>12:00 ظ</td><td>تحديث القائمة الموسمية</td><td>البار</td><td>عارف</td><td><span class="badge success">مكتمل</span></td></tr>
-                        <tr><td>01:30 ع</td><td>صيانة ماكينة الإسبريسو</td><td>الصيانة</td><td>علم</td><td><span class="badge info">جاري العمل</span></td></tr>
+                        <tr><td>08:00 ص</td><td>افتتاح البار ومعايرة طواحين الإسبريسو والفلتر</td><td>المقهى والبار</td><td><strong style="color:#0284C7;">عارف</strong></td><td><span class="badge success">مكتمل</span></td></tr>
+                        <tr><td>10:30 ص</td><td>تحميص دفعة شلشلي 50 كجم على الحماصة الرائدة</td><td>المحمصة والإنتاج</td><td><strong style="color:#0284C7;">علاء يوسف</strong></td><td><span class="badge success">مكتمل</span></td></tr>
+                        <tr><td>12:45 ظ</td><td>توريد دفعة جملة لمقهى الأفق (حائل) 50 كجم</td><td>المبيعات B2B</td><td><strong style="color:#0284C7;">جود القصير</strong></td><td><span class="badge success">مكتمل</span></td></tr>
+                        <tr><td>04:00 ع</td><td>استلام الوردية المسائية وإعادة ضبط استخلاص الفلات وايت</td><td>المقهى والبار</td><td><strong style="color:#0284C7;">علم</strong></td><td><span class="badge success">مكتمل</span></td></tr>
+                        <tr><td>06:30 م</td><td>مراجعة التدفق النقدي وإغلاق صندوق النثرية اليومي</td><td>المالية</td><td><strong style="color:#0284C7;">أنس الصفدي</strong></td><td><span class="badge success">مكتمل</span></td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
-
-        <div class="alert warning">
-            <i class="fas fa-exclamation-circle"></i>
-            <div><strong>تنبيه:</strong> يوجد 3 مهام متأخرة تحتاج إلى متابعة فورية</div>
-        </div>
     `;
 }
 
-// ====== KPI DASHBOARD ======
+// ===================================================================
+// 2. KPI DASHBOARD
+// ===================================================================
 function getKPIDashboardContent() {
     return `
         <div class="page-header">
             <h2 class="page-title">مؤشرات الأداء الرئيسية (KPIs)</h2>
-            <p class="page-subtitle">تتبع دقيق لأهم مقاييس الأداء المالي والتشغيلي</p>
+            <p class="page-subtitle">تتبع دقيق لأهم مقاييس الأداء المالي والتشغيلي لمقهى ومحمصة RoR</p>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card primary">
                 <div class="stat-header"><span class="stat-title">إجمالي المبيعات (شهري)</span><div class="stat-icon primary"><i class="fas fa-chart-line"></i></div></div>
-                <div class="stat-value">68,500 ريال</div>
+                <div class="stat-value">68,500 ر.س</div>
                 <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>15% عن الشهر الماضي</span></div>
             </div>
             <div class="stat-card success">
                 <div class="stat-header"><span class="stat-title">هامش الربح الإجمالي</span><div class="stat-icon success"><i class="fas fa-percentage"></i></div></div>
-                <div class="stat-value">42%</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>3% تحسن</span></div>
+                <div class="stat-value">44%</div>
+                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>3% تحسن في التكاليف</span></div>
             </div>
             <div class="stat-card warning">
-                <div class="stat-header"><span class="stat-title">التكاليف التشغيلية</span><div class="stat-icon warning"><i class="fas fa-wallet"></i></div></div>
-                <div class="stat-value">32,400 ريال</div>
-                <div class="stat-change negative"><i class="fas fa-arrow-up"></i> <span>5% زيادة</span></div>
+                <div class="stat-header"><span class="stat-title">التكاليف التشغيلية الثابتة</span><div class="stat-icon warning"><i class="fas fa-wallet"></i></div></div>
+                <div class="stat-value">28,000 ر.س</div>
+                <div class="stat-change"><span>إيجار، رواتب، وكهرباء</span></div>
             </div>
             <div class="stat-card info">
-                <div class="stat-header"><span class="stat-title">صافي الربح</span><div class="stat-icon success"><i class="fas fa-money-bill-wave"></i></div></div>
-                <div class="stat-value">12,850 ريال</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>18% تحسن</span></div>
+                <div class="stat-header"><span class="stat-title">صافي الدخل التشغيلي</span><div class="stat-icon success"><i class="fas fa-money-bill-wave"></i></div></div>
+                <div class="stat-value">16,850 ر.س</div>
+                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>أعلى من نقطة التعادل</span></div>
             </div>
         </div>
 
         <div class="table-card">
-            <div class="table-header"><h3 class="table-title">المؤشرات التشغيلية</h3></div>
+            <div class="table-header"><h3 class="table-title">المؤشرات التشغيلية الميدانية</h3></div>
             ${[
-                { label: 'كفاءة الإنتاج', val: 85 },
-                { label: 'رضا العملاء', val: 92 },
-                { label: 'معدل دوران المخزون', val: 78 },
-                { label: 'إنتاجية الموظفين', val: 88 }
+                { label: 'كفاءة تشغيل الحماصة الرائدة', val: 94 },
+                { label: 'رضا العملاء الميداني', val: 95 },
+                { label: 'معدل دوران أكياس البن (250جم)', val: 82 },
+                { label: 'انضباط ورديات البار (عارف وعلم)', val: 98 }
             ].map(k => `
                 <div class="progress-container">
                     <div class="progress-label"><span>${k.label}</span><span>${k.val}%</span></div>
@@ -433,7 +896,7 @@ function getKPIDashboardContent() {
 
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-header"><h3 class="chart-title">اتجاه المبيعات (6 أشهر)</h3></div>
+                <div class="chart-header"><h3 class="chart-title">اتجاه المبيعات الإجمالية</h3></div>
                 <div class="chart-container"><canvas id="salesTrendChart"></canvas></div>
             </div>
             <div class="chart-card">
@@ -444,35 +907,42 @@ function getKPIDashboardContent() {
     `;
 }
 
-// ====== WEEKLY PLAN ======
+// ===================================================================
+// 3. WEEKLY PLAN
+// ===================================================================
 function getWeeklyPlanContent() {
     const tasks = [
-        { title: 'تحميص 50 كيلو - خليط المنزل',        days: 'الأحد - الاثنين', owner: 'علاء يوسف',    priority: 'high',   done: false },
-        { title: 'متابعة طلبات الجملة المعلقة',          days: 'الاثنين',         owner: 'أبو محمد',     priority: 'medium', done: true },
-        { title: 'تحديث حسابات Instagram و TikTok',      days: 'يومي',            owner: 'قسم التسويق',  priority: 'high',   done: false },
-        { title: 'جرد المخزون الشهري',                    days: 'الخميس',          owner: 'جود',          priority: 'medium', done: false },
-        { title: 'صيانة دورية للمعدات',                   days: 'الجمعة',          owner: 'علم',          priority: 'low',    done: false }
+        { title: 'تحميص 50 كجم على الحماصة الرائدة لطلبات الجملة', days: 'الأحد - الاثنين', owner: 'علاء يوسف', priority: 'high', done: true },
+        { title: 'متابعة عقود توريد B2B مع مقهى الأفق وسلسلة نجد', days: 'الاثنين - الثلاثاء', owner: 'جود القصير', priority: 'high', done: true },
+        { title: 'جرد مخزون الحليب والأكواب وأكياس الأرباع (250جم)', days: 'الأربعاء', owner: 'عبد الله القصير', priority: 'medium', done: false },
+        { title: 'إعداد المطابقة البنكية الأسبوعية وتقارير نقاط البيع', days: 'الخميس', owner: 'أنس الصفدي', priority: 'high', done: false },
+        { title: 'صيانة وقائية وتنظيف شفرات طواحين الإسبريسو بالبار', days: 'الجمعة', owner: 'عبد الله القصير', priority: 'medium', done: false }
     ];
     const done = tasks.filter(t => t.done).length;
     const pct  = Math.round((done / tasks.length) * 100);
 
     return `
         <div class="page-header">
-            <h2 class="page-title">الخطة الأسبوعية</h2>
-            <p class="page-subtitle">الأسبوع الحالي — مارس 2024</p>
+            <h2 class="page-title">الخطة الأسبوعية التشغيلية</h2>
+            <p class="page-subtitle">جدولة الأولويات الميدانية والإدارية للشركاء المؤسسين</p>
         </div>
 
-        <div class="alert info">
-            <i class="fas fa-info-circle"></i>
-            <div><strong>ملاحظة:</strong> يتم تحديث الخطة الأسبوعية كل يوم أحد</div>
+        <div class="table-card" style="margin-bottom:1.5rem;">
+            <div class="table-header">
+                <div>
+                    <h3 class="table-title">معدل إنجاز المهام الأسبوعية</h3>
+                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">تم إنجاز ${done} من أصل ${tasks.length} مهام معتمدة</p>
+                </div>
+                <span style="font-weight:800;color:#0284C7;font-size:1.1rem;">${pct}%</span>
+            </div>
+            <div class="progress-bar-bg" style="height:10px;">
+                <div class="progress-bar-fill" style="width:${pct}%;background:linear-gradient(90deg, #0284C7, #10B981);"></div>
+            </div>
         </div>
 
         <div class="table-card">
             <div class="table-header">
-                <h3 class="table-title">مهام هذا الأسبوع</h3>
-                <button class="btn btn-primary" id="addWeeklyTaskBtn" onclick="alert('سيتم فتح نافذة إضافة مهمة')">
-                    <i class="fas fa-plus"></i> إضافة مهمة
-                </button>
+                <h3 class="table-title">مهام الأسبوع الجاري</h3>
             </div>
             <div class="task-list">
                 ${tasks.map((t, i) => `
@@ -481,85 +951,38 @@ function getWeeklyPlanContent() {
                         <div class="task-content">
                             <div class="task-title" style="${t.done ? 'text-decoration:line-through;opacity:0.6' : ''}">${t.title}</div>
                             <div class="task-meta">
-                                <span><i class="fas fa-calendar"></i> ${t.days}</span>
-                                <span><i class="fas fa-user"></i> ${t.owner}</span>
-                                <span class="task-priority ${t.priority}">${getPriorityText(t.priority)}</span>
+                                <span><i class="fas fa-calendar-day"></i> ${t.days}</span>
+                                <span><i class="fas fa-user-tie"></i> ${t.owner}</span>
+                                <span class="task-priority ${t.priority}">${t.priority === 'high' ? 'أولوية عالية' : 'أولوية متوسطة'}</span>
                             </div>
                         </div>
                     </div>
                 `).join('')}
             </div>
         </div>
-
-        <div class="table-card">
-            <div class="table-header"><h3 class="table-title">إنجاز المهام الأسبوعية</h3></div>
-            <div class="progress-container">
-                <div class="progress-label">
-                    <span>تم إنجاز ${done} من ${tasks.length} مهام</span>
-                    <span>${pct}%</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width:${pct}%"></div>
-                </div>
-            </div>
-        </div>
     `;
 }
 
-// ====== 40 TASKS (OFFICIAL 8-WEEK OPERATIONAL BLUEPRINT) ======
+// ===================================================================
+// 4. 40 OPERATIONAL TASKS (WEEKS 1-8 BLUEPRINT)
+// ===================================================================
 function get40TasksContent() {
-    const defaultTasks = [
-        { id: 1, week: 1, task: "حصر جميع الأصول الثابتة والمعدات وتوثيق الضمانات لمقهى RoR.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
-        { id: 2, week: 1, task: "إدخال بيانات الموردين الحاليين وتثبيت شروط الدفع والائتمان.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 3, week: 1, task: "إعداد وتدقيق قائمة المكونات الأولية (Raw Materials) لجميع المشروبات والأطباق.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 4, week: 1, task: "تعيين أسعار التكلفة المعيارية (Standard Recipe Cost) للمشروبات والوجبات الرئيسية.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
-        { id: 5, week: 1, task: "ضبط أرصدة المخزون الافتتاحية للمستودع الرئيسي والثلاجات الفرعية.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 6, week: 2, task: "توزيع المهام التشغيلية اليومية لموظفي صالة RoR والبارتندرز والمطبخ.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 7, week: 2, task: "تفعيل مصفوفة المسؤوليات (RACI) وتحديد من يملك القرار النهائي لكل قسم.", cat: "حوكمة", status: "completed", responsible: "علاء" },
-        { id: 8, week: 2, task: "إعداد كتيب الموظف الداخلي (Employee Handbook) وتوضيح معايير خدمة RoR.", cat: "حوكمة", status: "completed", responsible: "أنس" },
-        { id: 9, week: 2, task: "جدولة فترات العمل (Shift Schedule) وتوزيع ساعات الذروة والهدوء أسبوعياً.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 10, week: 2, task: "تفعيل نظام تقييم الأداء الأسبوعي الأولي لفريق الخدمة والتحضير.", cat: "جودة وتطوير", status: "completed", responsible: "علاء" },
-        { id: 11, week: 3, task: "توثيق إجراءات التحضير المسبق (Prep Sheet) لخط الإنتاج الساخن والبارد.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 12, week: 3, task: "إطلاق سجل تتبع الهدر اليومي (Daily Waste Log) في المطبخ والبار.", cat: "جودة وتطوير", status: "completed", responsible: "علاء" },
-        { id: 13, week: 3, task: "تحديد الحد الأعلى والحد الأدنى للطلب (Min/Max Par Levels) لكل صنف بالمخزن.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 14, week: 3, task: "فحص وضبط معايير معايرة المكائن (Espresso Calibration, Grinder, Ovens).", cat: "جودة وتطوير", status: "completed", responsible: "علاء" },
-        { id: 15, week: 3, task: "تطبيق آلية التدقيق على الاستلام ودرجات حرارة الأغذية الواردة.", cat: "جودة وتطوير", status: "completed", responsible: "عبدالله" },
-        { id: 16, week: 4, task: "ربط وتحليل بيانات نظام البيع (POS) لاستخراج حجم المبيعات الفعلي للأسابيع الماضية.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 17, week: 4, task: "تصنيف أصناف المنيو في جدول أولي وفق هندسة القائمة (Stars, Puzzles, Plowhorses, Dogs).", cat: "تسويقية", status: "completed", responsible: "علاء" },
-        { id: 18, week: 4, task: "مراجعة أسعار بيع المشروبات الأكثر طلباً بـ RoR ومقارنتها بأسعار المنافسين.", cat: "تسويقية", status: "completed", responsible: "جود" },
-        { id: 19, week: 4, task: "حساب هامش الربح الإجمالي (Gross Margin) لكل تصنيف في منيو RoR الحالي.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 20, week: 4, task: "اتخاذ قرار مبدئي بشأن تعديل أسعار بيع الأصناف أو استبدال الأصناف الضعيفة.", cat: "حوكمة", status: "completed", responsible: "علاء" },
-        { id: 21, week: 5, task: "مراجعة حركة النقد اليومية (Daily Cash Flow Drop) ومطابقتها مع تقارير المبيعات.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 22, week: 5, task: "جدولة فواتير الموردين المستحقة وتوزيع دفعاتها لتجنب انقطاع التوريد.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 23, week: 5, task: "حصر الذمم المدينة (مبيعات الشركات/الفعاليات لـ RoR) ومتابعة تحصيل المدفوعات.", cat: "مبيعات وجملة", status: "completed", responsible: "جود" },
-        { id: 24, week: 5, task: "إنشاء صندوق النثرية (Petty Cash) وتحديد صلاحيات صرفه وتوثيق فواتيره السريعة.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 25, week: 5, task: "تحليل المصاريف التشغيلية الثابتة والمتغيرة وربطها بنقطة التعادل المستهدفة.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
-        { id: 26, week: 6, task: "تطبيق قائمة التدقيق البيئية والصحية والبلدية الداخلية بـ RoR.", cat: "جودة وتطوير", status: "completed", responsible: "عبدالله" },
-        { id: 27, week: 6, task: "تفعيل منبه التراخيص القانونية والصحية وفترات تجديد سجلات وتراخيص مقهى RoR.", cat: "حوكمة", status: "completed", responsible: "أنس" },
-        { id: 28, week: 6, task: "إجراء فحص سري للمتسوق الخفي (Mystery Shopper) لتقييم كفاءة الخدمة وسرعتها.", cat: "جودة وتطوير", status: "completed", responsible: "جود" },
-        { id: 29, week: 6, task: "مراجعة شكاوى وملاحظات العملاء على منصات التقييم (Google Maps / Social Media).", cat: "تسويقية", status: "completed", responsible: "جود" },
-        { id: 30, week: 6, task: "تدريب فريق العمل بـ RoR على سيناريوهات التعامل مع ضغط العمل وشكاوى العملاء المباشرة.", cat: "تشغيلية", status: "completed", responsible: "عبدالله" },
-        { id: 31, week: 7, task: "حساب تكلفة الغذاء الفعلية (Actual Food Cost) ومقارنتها بالمعيارية المخطط لها.", cat: "مالية وتكاليف", status: "completed", responsible: "علاء" },
-        { id: 32, week: 7, task: "احتساب تكلفة العمالة الإجمالية (Labor Cost %) كنسبة مئوية من المبيعات الفعلية.", cat: "مالية وتكاليف", status: "completed", responsible: "أنس" },
-        { id: 33, week: 7, task: "تحديد التكلفة الأساسية (Prime Cost) والتأكد من أنها ضمن النطاق المالي الآمن (<60%).", cat: "مالية وتكاليف", status: "in-progress", responsible: "علاء" },
-        { id: 34, week: 7, task: "إعداد تقرير التباين الأسبوعي (Variance Report) بين الاستهلاك الفعلي والمعياري للمواد.", cat: "جودة وتطوير", status: "in-progress", responsible: "عبدالله" },
-        { id: 35, week: 7, task: "وضع خطة عمل فورية لمعالجة الفروقات في المواد المرتفعة التكلفة.", cat: "تشغيلية", status: "pending", responsible: "علاء" },
-        { id: 36, week: 8, task: "تطوير لوحة قيادة الأداء النهائية (Final Performance Dashboard) الشاملة لجميع المؤشرات.", cat: "حوكمة", status: "pending", responsible: "علاء" },
-        { id: 37, week: 8, task: "عرض التقرير المالي النهائي ومقارنة النتائج الفعلية بالأهداف المستهدفة بـ RoR.", cat: "مالية وتكاليف", status: "pending", responsible: "أنس" },
-        { id: 38, week: 8, task: "تثبيت مصفوفة الصلاحيات الدائمة (Final RACI) وتحديث الوصف الوظيفي لجميع العاملين.", cat: "حوكمة", status: "pending", responsible: "عبدالله" },
-        { id: 39, week: 8, task: "تسليم أدلة التشغيل القياسية المحدثة (SOPs) لمدراء الفروع والورديات.", cat: "تشغيلية", status: "pending", responsible: "علاء" },
-        { id: 40, week: 8, task: "عقد اجتماع الإغلاق والتقييم النهائي مع الإدارة واعتماد خطة التوسع المستقبلية.", cat: "حوكمة", status: "pending", responsible: "علاء" }
-    ];
+    const tasks = window.DataService.getTasks();
 
-    const completedCount = defaultTasks.filter(t => t.status === 'completed').length;
-    const inProgressCount = defaultTasks.filter(t => t.status === 'in-progress').length;
-    const pendingCount = defaultTasks.filter(t => t.status === 'pending').length;
-    const progressPct = Math.round((completedCount / defaultTasks.length) * 100);
+    const completedCount = tasks.filter(t => t.status === 'completed').length;
+    const inProgressCount = tasks.filter(t => t.status === 'in-progress').length;
+    const pendingCount = tasks.filter(t => t.status === 'pending' || t.status === 'scheduled').length;
+    const progressPct = Math.round((completedCount / tasks.length) * 100);
 
     return `
-        <div class="page-header">
-            <h2 class="page-title">خطة الـ 40 مهمة التشغيلية المعتمدة</h2>
-            <p class="page-subtitle">خارطة طريق التطوير وإعادة الهيكلة الشاملة لمقهى ومحمصة RoR (مقسمة على 8 أسابيع)</p>
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 class="page-title">خطة الـ 40 مهمة التشغيلية المعتمدة</h2>
+                <p class="page-subtitle">خارطة طريق التطوير وإعادة الهيكلة الشاملة لمقهى ومحمصة RoR (مقسمة على 8 أسابيع متتالية)</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> طباعة الخطة</button>
+            </div>
         </div>
 
         <!-- KPI Summary Cards -->
@@ -569,17 +992,19 @@ function get40TasksContent() {
                     <span class="stat-title">إجمالي المهام المعتمدة</span>
                     <div class="stat-icon primary"><i class="fas fa-list-check"></i></div>
                 </div>
-                <div class="stat-value">40 مهمة</div>
-                <div class="stat-change"><span>8 أسابيع تشغيلية متتالية</span></div>
+                <div class="stat-value">${tasks.length} مهمة</div>
+                <div class="stat-change"><span>8 أسابيع تشغيلية متكاملة</span></div>
             </div>
+
             <div class="stat-card success">
                 <div class="stat-header">
                     <span class="stat-title">المهام المنجزة بنجاح</span>
                     <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
                 </div>
                 <div class="stat-value">${completedCount} مهمة</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>${progressPct}% نسبة الإنجاز</span></div>
+                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>${progressPct}% نسبة الإنجاز التراكمي</span></div>
             </div>
+
             <div class="stat-card warning">
                 <div class="stat-header">
                     <span class="stat-title">مهام قيد التنفيذ</span>
@@ -588,6 +1013,7 @@ function get40TasksContent() {
                 <div class="stat-value">${inProgressCount} مهام</div>
                 <div class="stat-change"><span>الأسبوع 7 (التكلفة الأساسية والتباين)</span></div>
             </div>
+
             <div class="stat-card info">
                 <div class="stat-header">
                     <span class="stat-title">المهام المجدولة المتبقية</span>
@@ -615,11 +1041,11 @@ function get40TasksContent() {
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                     <h3 class="table-title">سجل الـ 40 مهمة المفصل</h3>
                     <div class="filter-pills-group" id="tasksWeekFilterGroup">
-                        <button class="filter-pill-btn active" onclick="filter40Tasks('all', this)">الكل (40)</button>
-                        <button class="filter-pill-btn" onclick="filter40Tasks('w1-2', this)">الأسابيع 1-2 (10)</button>
-                        <button class="filter-pill-btn" onclick="filter40Tasks('w3-4', this)">الأسابيع 3-4 (10)</button>
-                        <button class="filter-pill-btn" onclick="filter40Tasks('w5-6', this)">الأسابيع 5-6 (10)</button>
-                        <button class="filter-pill-btn" onclick="filter40Tasks('w7-8', this)">الأسابيع 7-8 (10)</button>
+                        <button type="button" class="filter-pill-btn active" onclick="filter40Tasks('all', this)">الكل (${tasks.length})</button>
+                        <button type="button" class="filter-pill-btn" onclick="filter40Tasks('w1-2', this)">الأسابيع 1-2 (10)</button>
+                        <button type="button" class="filter-pill-btn" onclick="filter40Tasks('w3-4', this)">الأسابيع 3-4 (10)</button>
+                        <button type="button" class="filter-pill-btn" onclick="filter40Tasks('w5-6', this)">الأسابيع 5-6 (10)</button>
+                        <button type="button" class="filter-pill-btn" onclick="filter40Tasks('w7-8', this)">الأسابيع 7-8 (10)</button>
                     </div>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
@@ -639,22 +1065,27 @@ function get40TasksContent() {
                             <th>المهمة التشغيلية</th>
                             <th style="width:140px;">الفئة</th>
                             <th style="width:120px;">المسؤول</th>
-                            <th style="width:130px;">الحالة</th>
+                            <th style="width:140px;">الحالة التفاعلية</th>
                         </tr>
                     </thead>
                     <tbody id="tasksTableBody">
-                        ${defaultTasks.map(t => {
-                            const statusLabel = t.status === 'completed' ? 'مكتمل' : t.status === 'in-progress' ? 'قيد التنفيذ' : 'مجدول';
-                            const statusClass = t.status === 'completed' ? 'badge-green' : t.status === 'in-progress' ? 'badge-blue' : 'badge-warning';
-                            const statusIcon  = t.status === 'completed' ? 'fa-check' : t.status === 'in-progress' ? 'fa-spinner fa-spin' : 'fa-clock';
+                        ${tasks.map(t => {
+                            const isDone = t.status === 'completed';
+                            const isInProg = t.status === 'in-progress';
                             return `
                                 <tr data-week="${t.week}" data-status="${t.status}" data-cat="${t.cat}">
                                     <td style="font-weight:700;color:#64748B;">#${t.id}</td>
                                     <td><span class="badge badge-oxford" style="font-weight:600;">الأسبوع ${t.week}</span></td>
-                                    <td style="font-weight:600;color:#0F172A;">${t.task}</td>
+                                    <td style="font-weight:600;color:${isDone ? '#64748B' : '#0F172A'};text-decoration:${isDone ? 'line-through' : 'none'};">${t.task}</td>
                                     <td><span class="badge badge-subtle" style="font-size:0.75rem;">${t.cat}</span></td>
                                     <td><strong style="color:#0284C7;"><i class="fas fa-user-circle" style="margin-left:4px;"></i>${t.responsible}</strong></td>
-                                    <td><span class="badge ${statusClass}"><i class="fas ${statusIcon}" style="margin-left:4px;"></i>${statusLabel}</span></td>
+                                    <td>
+                                        <select onchange="window.DataService.updateTaskStatus(${t.id}, this.value); loadPage('40-tasks');" style="font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid #CBD5E1;background:${isDone ? '#DCFCE7' : isInProg ? '#E0F2FE' : '#FEF3C7'};color:${isDone ? '#16A34A' : isInProg ? '#0284C7' : '#D97706'};font-weight:700;cursor:pointer;">
+                                            <option value="completed" ${isDone ? 'selected' : ''}>مكتمل</option>
+                                            <option value="in-progress" ${isInProg ? 'selected' : ''}>قيد التنفيذ</option>
+                                            <option value="pending" ${t.status === 'pending' || t.status === 'scheduled' ? 'selected' : ''}>مجدول</option>
+                                        </select>
+                                    </td>
                                 </tr>
                             `;
                         }).join('')}
@@ -665,7 +1096,6 @@ function get40TasksContent() {
     `;
 }
 
-// Interactive 40 Tasks filtering
 window.filter40Tasks = function(filter, btn) {
     document.querySelectorAll('#tasksWeekFilterGroup .filter-pill-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
@@ -691,18 +1121,11 @@ window.filterTasksByText = function(query) {
     });
 };
 
-// ====== MENU ENGINEERING (OFFICIAL 2D MATRIX) ======
+// ===================================================================
+// 5. MENU ENGINEERING (OFFICIAL 2D MATRIX)
+// ===================================================================
 function getMenuEngineeringContent() {
-    const menuItems = [
-        { name: "V60 إثيوبي شلشلي", category: "مشروبات ساخنة", price: 18.0, cost: 4.5, popularity: 8, contribution: 75.0, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
-        { name: "فلات وايت RoR", category: "مشروبات ساخنة", price: 15.0, cost: 3.8, popularity: 9, contribution: 74.6, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
-        { name: "قهوة اليوم كولومبي", category: "مشروبات ساخنة", price: 9.0, cost: 1.8, popularity: 10, contribution: 80.0, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
-        { name: "سبانش لاتيه RoR", category: "مشروبات ساخنة", price: 19.0, cost: 5.5, popularity: 8, contribution: 71.1, classType: "stars", label: "نجم (Star)", badge: "badge-green", icon: "fa-star" },
-        { name: "كولد برو مقطر RoR", category: "مشروبات باردة", price: 21.0, cost: 5.2, popularity: 6, contribution: 75.2, classType: "puzzles", label: "لغز (Puzzle)", badge: "badge-blue", icon: "fa-circle-question" },
-        { name: "كيكة التمر بالكراميل", category: "حلويات ومخبوزات", price: 16.0, cost: 4.0, popularity: 5, contribution: 75.0, classType: "puzzles", label: "لغز (Puzzle)", badge: "badge-blue", icon: "fa-circle-question" },
-        { name: "كورتادو كلاسيك", category: "مشروبات ساخنة", price: 14.0, cost: 3.2, popularity: 7, contribution: 77.1, classType: "plowhorses", label: "حصان (Plowhorse)", badge: "badge-warning", icon: "fa-horse" },
-        { name: "شاي إنجليزي فاخر", category: "مشروبات ساخنة", price: 8.0, cost: 1.2, popularity: 3, contribution: 85.0, classType: "dogs", label: "منخفض (Dog)", badge: "badge-danger", icon: "fa-paw" }
-    ];
+    const menuItems = window.DataService.getMenuItems();
 
     const starsCount = menuItems.filter(m => m.classType === 'stars').length;
     const plowCount = menuItems.filter(m => m.classType === 'plowhorses').length;
@@ -710,9 +1133,14 @@ function getMenuEngineeringContent() {
     const dogsCount = menuItems.filter(m => m.classType === 'dogs').length;
 
     return `
-        <div class="page-header">
-            <h2 class="page-title">هندسة القائمة ومصفوفة الربحية (Menu Engineering)</h2>
-            <p class="page-subtitle">المصفوفة الثنائية (2D Matrix) لتصنيف أصناف المنيو وفق الشعبية الميدانية وهامش المساهمة الربحي</p>
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 class="page-title">هندسة القائمة ومصفوفة الربحية (Menu Engineering)</h2>
+                <p class="page-subtitle">المصفوفة الثنائية (2D Matrix) لتصنيف أصناف المنيو وفق الشعبية الميدانية وهامش المساهمة الربحي</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-primary" onclick="openMenuItemModal()"><i class="fas fa-plus"></i> إضافة صنف للمنيو</button>
+            </div>
         </div>
 
         <!-- 4 Quadrants Summary Cards -->
@@ -725,7 +1153,7 @@ function getMenuEngineeringContent() {
                 <div class="stat-value">${starsCount} أصناف</div>
                 <div class="stat-change positive"><span>ربحية عالية + شعبية عالية</span></div>
                 <p style="margin-top:0.65rem;font-size:0.78rem;color:#64748B;line-height:1.5;">
-                    <strong>القرار التشغيلي:</strong> حماية الجودة بدقة، ثبات معايرة الاستخلاص، وتوفير محاصيلها دون انقطاع.
+                    <strong>القرار التشغيلي:</strong> حماية معايير الجودة وثبات معايرة الاستخلاص وضمان وفرة المحصول دون انقطاع.
                 </p>
             </div>
 
@@ -749,7 +1177,7 @@ function getMenuEngineeringContent() {
                 <div class="stat-value">${puzzlesCount} أصناف</div>
                 <div class="stat-change"><span>ربحية عالية جداً + شعبية منخفضة</span></div>
                 <p style="margin-top:0.65rem;font-size:0.78rem;color:#64748B;line-height:1.5;">
-                    <strong>القرار التشغيلي:</strong> تفعيل أساليب البيع المقترح (Upselling) بواسطة الكاشير وعينات تذوق مجانية.
+                    <strong>القرار التشغيلي:</strong> تفعيل أساليب البيع المقترح (Upselling) بواسطة باريستا الكاشير وعينات تذوق.
                 </p>
             </div>
 
@@ -773,9 +1201,6 @@ function getMenuEngineeringContent() {
                     <h3 class="table-title">جدول تحليل المنيو الشامل والتكاليف</h3>
                     <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات مسعرة بالريال السعودي مع نسب هامش المساهمة الفعلي</p>
                 </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> طباعة التقرير</button>
-                </div>
             </div>
 
             <div class="table-responsive">
@@ -795,14 +1220,15 @@ function getMenuEngineeringContent() {
                     <tbody>
                         ${menuItems.map(m => {
                             const margin = (m.price - m.cost).toFixed(2);
+                            const contribPct = (((m.price - m.cost) / m.price) * 100).toFixed(1);
                             return `
                                 <tr>
                                     <td style="font-weight:700;color:#0F172A;"><i class="fas fa-mug-hot" style="color:#0284C7;margin-left:6px;"></i>${m.name}</td>
                                     <td><span class="badge badge-subtle">${m.category}</span></td>
-                                    <td style="font-weight:700;color:#0F172A;">${m.price.toFixed(2)} ر.س</td>
-                                    <td style="color:#64748B;">${m.cost.toFixed(2)} ر.س</td>
+                                    <td style="font-weight:700;color:#0F172A;">${parseFloat(m.price).toFixed(2)} ر.س</td>
+                                    <td style="color:#64748B;">${parseFloat(m.cost).toFixed(2)} ر.س</td>
                                     <td style="font-weight:800;color:#10B981;">+${margin} ر.س</td>
-                                    <td style="font-weight:700;color:#0284C7;">${m.contribution.toFixed(1)}%</td>
+                                    <td style="font-weight:700;color:#0284C7;">${contribPct}%</td>
                                     <td>
                                         <div style="display:flex;align-items:center;gap:6px;">
                                             <span style="font-weight:700;width:18px;">${m.popularity}</span>
@@ -811,7 +1237,7 @@ function getMenuEngineeringContent() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td><span class="badge ${m.badge}"><i class="fas ${m.icon}" style="margin-left:4px;"></i>${m.label}</span></td>
+                                    <td><span class="badge ${m.badge || 'badge-green'}"><i class="fas ${m.icon || 'fa-star'}" style="margin-left:4px;"></i>${m.label || 'نجم'}</span></td>
                                 </tr>
                             `;
                         }).join('')}
@@ -822,121 +1248,236 @@ function getMenuEngineeringContent() {
     `;
 }
 
-// ====== BREAKEVEN ======
+// ===================================================================
+// 6. DYNAMIC BREAK-EVEN ANALYSIS WITH LIVE SLIDERS
+// ===================================================================
 function getBreakevenContent() {
-    const rows = [
-        { goal:'التعادل (صفر ربح)',  monthly:'50,909', daily:'1,697', cups:'85' },
-        { goal:'ربح 10,000 ريال',   monthly:'69,091', daily:'2,303', cups:'115' },
-        { goal:'ربح 20,000 ريال',   monthly:'87,273', daily:'2,909', cups:'145' },
-        { goal:'ربح 30,000 ريال',   monthly:'105,455',daily:'3,515', cups:'176' }
-    ];
+    const cfg = window.DataService.getBreakevenConfig();
+
     return `
         <div class="page-header">
-            <h2 class="page-title">نقطة التعادل (Break-Even Analysis)</h2>
-            <p class="page-subtitle">تحديد الحد الأدنى من المبيعات لتغطية التكاليف</p>
+            <h2 class="page-title">نموذج نقطة التعادل التفاعلي (Dynamic Break-Even Model)</h2>
+            <p class="page-subtitle">محاكاة حية لتحديد حجم المبيعات والأكواب المطلوبة لتغطية التكاليف وتحقيق هوامش الربح المستهدفة</p>
         </div>
 
-        <div class="stats-grid">
+        <!-- Interactive Slider Controls Card -->
+        <div class="breakeven-slider-card">
+            <h3 style="font-size:1rem;font-weight:700;color:#0F172A;margin-bottom:0.5rem;"><i class="fas fa-sliders" style="color:#0284C7;margin-left:6px;"></i> لوحة التحكم في متغيرات التكلفة والأسعار</h3>
+            <p style="font-size:0.8rem;color:#64748B;margin-bottom:1rem;">قم بتحريك المؤشرات لحساب نقطة التعادل الشهرية واليومية وعدد الأكواب فورياً:</p>
+
+            <div class="slider-group">
+                <!-- 1. Fixed Costs Slider -->
+                <div class="slider-box">
+                    <div class="slider-box-header">
+                        <span class="slider-box-title">التكاليف الثابتة الشهرية (إيجار + رواتب + كهرباء)</span>
+                        <span class="slider-box-val" id="valFixedCosts">${cfg.fixedCosts.toLocaleString('en-US')} ر.س</span>
+                    </div>
+                    <input type="range" class="slider-input" id="sliderFixedCosts" min="15000" max="50000" step="1000" value="${cfg.fixedCosts}" oninput="updateBreakevenCalc()">
+                    <div class="slider-minmax"><span>15,000 ر.س</span><span>50,000 ر.س</span></div>
+                </div>
+
+                <!-- 2. Average Cup Price Slider -->
+                <div class="slider-box">
+                    <div class="slider-box-header">
+                        <span class="slider-box-title">متوسط سعر بيع الكوب / الطلب</span>
+                        <span class="slider-box-val" id="valAvgCupPrice">${cfg.avgCupPrice} ر.س</span>
+                    </div>
+                    <input type="range" class="slider-input" id="sliderAvgCupPrice" min="10" max="30" step="1" value="${cfg.avgCupPrice}" oninput="updateBreakevenCalc()">
+                    <div class="slider-minmax"><span>10 ر.س</span><span>30 ر.س</span></div>
+                </div>
+
+                <!-- 3. Variable Cost Ratio Slider -->
+                <div class="slider-box">
+                    <div class="slider-box-header">
+                        <span class="slider-box-title">نسبة التكاليف المتغيرة (بن + حليب + تغليف)</span>
+                        <span class="slider-box-val" id="valVariableRatio">${Math.round(cfg.variableRatio * 100)}%</span>
+                    </div>
+                    <input type="range" class="slider-input" id="sliderVariableRatio" min="25" max="60" step="1" value="${Math.round(cfg.variableRatio * 100)}" oninput="updateBreakevenCalc()">
+                    <div class="slider-minmax"><span>25%</span><span>60%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculated Live Metrics Grid -->
+        <div class="stats-grid" id="breakevenMetricsGrid">
             <div class="stat-card primary">
-                <div class="stat-header"><span class="stat-title">التكاليف الثابتة (شهرياً)</span><div class="stat-icon primary"><i class="fas fa-anchor"></i></div></div>
-                <div class="stat-value">28,000 ريال</div>
-                <ul style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary);list-style:none;padding:0">
-                    <li>• إيجار: 12,000</li><li>• رواتب: 10,000</li><li>• كهرباء: 3,000</li>
-                    <li>• تأمينات: 2,000</li><li>• أخرى: 1,000</li>
-                </ul>
+                <div class="stat-header"><span class="stat-title">هامش المساهمة (Contribution Margin)</span><div class="stat-icon primary"><i class="fas fa-percentage"></i></div></div>
+                <div class="stat-value" id="calcContribMargin">${Math.round((1 - cfg.variableRatio) * 100)}%</div>
+                <p style="margin-top:0.5rem;font-size:0.8rem;color:#64748B;" id="calcContribSAR">هامش الكوب: ${(cfg.avgCupPrice * (1 - cfg.variableRatio)).toFixed(2)} ر.س</p>
             </div>
-            <div class="stat-card warning">
-                <div class="stat-header"><span class="stat-title">متوسط التكاليف المتغيرة</span><div class="stat-icon warning"><i class="fas fa-exchange-alt"></i></div></div>
-                <div class="stat-value">45%</div>
-                <p style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary)">من سعر البيع (خامات، تغليف، شحن)</p>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-header"><span class="stat-title">هامش المساهمة</span><div class="stat-icon success"><i class="fas fa-percentage"></i></div></div>
-                <div class="stat-value">55%</div>
-                <p style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary)">100% - 45% = 55%</p>
-            </div>
+
             <div class="stat-card danger">
-                <div class="stat-header"><span class="stat-title">نقطة التعادل (شهرياً)</span><div class="stat-icon danger"><i class="fas fa-balance-scale"></i></div></div>
-                <div class="stat-value">50,909 ريال</div>
-                <p style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-secondary)">28,000 ÷ 0.55 = 50,909</p>
+                <div class="stat-header"><span class="stat-title">نقطة التعادل الشهرية (Break-Even)</span><div class="stat-icon danger"><i class="fas fa-balance-scale"></i></div></div>
+                <div class="stat-value" id="calcMonthlyBreakeven">0 ر.س</div>
+                <p style="margin-top:0.5rem;font-size:0.8rem;color:#64748B;">المبيعات لتغطية التكاليف بالكامل</p>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header"><span class="stat-title">المبيعات اليومية المطلوبة</span><div class="stat-icon warning"><i class="fas fa-calendar-day"></i></div></div>
+                <div class="stat-value" id="calcDailyBreakeven">0 ر.س</div>
+                <p style="margin-top:0.5rem;font-size:0.8rem;color:#64748B;">سقف التكلفة اليومي للتشغيل</p>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header"><span class="stat-title">عدد الأكواب اليومية المطلوبة</span><div class="stat-icon success"><i class="fas fa-mug-hot"></i></div></div>
+                <div class="stat-value" id="calcDailyCups">0 كوب</div>
+                <p style="margin-top:0.5rem;font-size:0.8rem;color:#64748B;">بمعدل السعر المحدد</p>
             </div>
         </div>
 
-        <div class="table-card">
-            <div class="table-header"><h3 class="table-title">المبيعات المطلوبة لتحقيق الأهداف</h3></div>
+        <!-- Profit Target Matrix Table -->
+        <div class="table-card" style="margin-top:1.5rem;">
+            <div class="table-header">
+                <h3 class="table-title">المبيعات المطلوبة لتحقيق مستويات أرباح صافية محددة</h3>
+            </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>الهدف</th><th>المبيعات المطلوبة (شهرياً)</th><th>المبيعات اليومية</th><th>عدد الأكواب (بمعدل 20 ريال)</th></tr></thead>
-                    <tbody>
-                        ${rows.map(r => `
-                            <tr>
-                                <td><strong>${r.goal}</strong></td>
-                                <td>${r.monthly} ريال</td>
-                                <td>${r.daily} ريال</td>
-                                <td>${r.cups} كوب</td>
-                            </tr>
-                        `).join('')}
+                    <thead>
+                        <tr>
+                            <th>الهدف الربحي الصافي</th>
+                            <th>المبيعات الشهرية المستهدفة</th>
+                            <th>المبيعات اليومية المطلوبة</th>
+                            <th>عدد الأكواب اليومية</th>
+                            <th>الحالة والتقييم</th>
+                        </tr>
+                    </thead>
+                    <tbody id="profitTargetTableBody">
+                        <!-- Populated by updateBreakevenCalc() -->
                     </tbody>
                 </table>
-            </div>
-        </div>
-
-        <div class="alert warning">
-            <i class="fas fa-exclamation-triangle"></i>
-            <div>
-                <strong>الوضع الحالي:</strong> متوسط المبيعات اليومية = 2,450 ريال (أعلى من التعادل بـ 44%)<br>
-                <strong>التوصية:</strong> العمل على زيادة المبيعات لتحقيق هامش ربح أفضل
             </div>
         </div>
     `;
 }
 
-// ====== RACI MATRIX ======
+window.initializeBreakevenSliders = function() {
+    updateBreakevenCalc();
+};
+
+window.updateBreakevenCalc = function() {
+    const sFixed = document.getElementById('sliderFixedCosts');
+    const sPrice = document.getElementById('sliderAvgCupPrice');
+    const sRatio = document.getElementById('sliderVariableRatio');
+    if (!sFixed || !sPrice || !sRatio) return;
+
+    const fixedCosts = parseFloat(sFixed.value);
+    const avgPrice = parseFloat(sPrice.value);
+    const varRatio = parseFloat(sRatio.value) / 100;
+    const contribMargin = 1 - varRatio;
+
+    // Save to service
+    window.DataService.saveBreakevenConfig({ fixedCosts, avgCupPrice: avgPrice, variableRatio: varRatio });
+
+    // Update Slider Labels
+    const valFixed = document.getElementById('valFixedCosts');
+    const valPrice = document.getElementById('valAvgCupPrice');
+    const valRatio = document.getElementById('valVariableRatio');
+    if (valFixed) valFixed.textContent = `${fixedCosts.toLocaleString('en-US')} ر.س`;
+    if (valPrice) valPrice.textContent = `${avgPrice} ر.س`;
+    if (valRatio) valRatio.textContent = `${Math.round(varRatio * 100)}%`;
+
+    // Calculations
+    const monthlyBreakeven = Math.round(fixedCosts / contribMargin);
+    const dailyBreakeven = Math.round(monthlyBreakeven / 30);
+    const dailyCups = Math.round(dailyBreakeven / avgPrice);
+    const cupMarginSAR = (avgPrice * contribMargin).toFixed(2);
+
+    // Update Metric Cards
+    const elMargin = document.getElementById('calcContribMargin');
+    const elContribSAR = document.getElementById('calcContribSAR');
+    const elMonth = document.getElementById('calcMonthlyBreakeven');
+    const elDay = document.getElementById('calcDailyBreakeven');
+    const elCups = document.getElementById('calcDailyCups');
+
+    if (elMargin) elMargin.textContent = `${Math.round(contribMargin * 100)}%`;
+    if (elContribSAR) elContribSAR.textContent = `هامش الكوب الصافي: ${cupMarginSAR} ر.س`;
+    if (elMonth) elMonth.textContent = `${monthlyBreakeven.toLocaleString('en-US')} ر.س`;
+    if (elDay) elDay.textContent = `${dailyBreakeven.toLocaleString('en-US')} ر.س`;
+    if (elCups) elCups.textContent = `${dailyCups} كوب`;
+
+    // Scenarios Table
+    const targets = [
+        { label: 'التعادل (صفر ربح)', profit: 0, tag: 'سقف الأمان', badge: 'badge-blue' },
+        { label: 'صافي ربح 10,000 ر.س', profit: 10000, tag: 'هدف أولي', badge: 'badge-green' },
+        { label: 'صافي ربح 20,000 ر.س', profit: 20000, tag: 'هدف توسعي', badge: 'badge-green' },
+        { label: 'صافي ربح 30,000 ر.س', profit: 30000, tag: 'الريادة الميدانية', badge: 'badge-oxford' }
+    ];
+
+    const tbody = document.getElementById('profitTargetTableBody');
+    if (tbody) {
+        tbody.innerHTML = targets.map(t => {
+            const reqMonthly = Math.round((fixedCosts + t.profit) / contribMargin);
+            const reqDaily = Math.round(reqMonthly / 30);
+            const reqCups = Math.round(reqDaily / avgPrice);
+            return `
+                <tr>
+                    <td style="font-weight:700;color:#0F172A;">${t.label}</td>
+                    <td style="font-weight:800;color:#0284C7;">${reqMonthly.toLocaleString('en-US')} ر.س</td>
+                    <td style="font-weight:700;">${reqDaily.toLocaleString('en-US')} ر.س</td>
+                    <td style="font-weight:700;">${reqCups} كوب / يوم</td>
+                    <td><span class="badge ${t.badge}">${t.tag}</span></td>
+                </tr>
+            `;
+        }).join('');
+    }
+};
+
+// ===================================================================
+// 7. RACI RESPONSIBILITY MATRIX (GOVERNANCE ALIGNED)
+// ===================================================================
 function getRACIMatrixContent() {
+    // Columns: Alaa (CSA & Roastmaster), Abdullah (COO), Joud (CEO & CMO), Anas (CFO), Aref (Morning Barista), Elem (Evening Barista)
+    // Aref & Elem are strictly operational baristas (Zero administrative tasks)
     const matrix = [
-        { task:'التحميص والإنتاج',    alaa:'R, A', abu:'I',    joud:'I',   anas:'-',   aref:'C',    alm:'C' },
-        { task:'ضبط الجودة',           alaa:'R, A', abu:'I',    joud:'I',   anas:'-',   aref:'C',    alm:'-' },
-        { task:'مبيعات B2B',           alaa:'C',    abu:'R, A', joud:'I',   anas:'I',   aref:'-',    alm:'-' },
-        { task:'الإدارة المالية',      alaa:'I',    abu:'I',    joud:'R',   anas:'A',   aref:'-',    alm:'-' },
-        { task:'التسويق الرقمي',       alaa:'A',    abu:'C',    joud:'R',   anas:'I',   aref:'R',    alm:'R' },
-        { task:'خدمة العملاء (البار)', alaa:'C',    abu:'I',    joud:'I',   anas:'-',   aref:'R, A', alm:'R, A' },
-        { task:'صيانة المعدات',        alaa:'C',    abu:'I',    joud:'I',   anas:'-',   aref:'R',    alm:'R, A' },
-        { task:'إدارة المخزون',        alaa:'C',    abu:'C',    joud:'R, A',anas:'I',   aref:'R',    alm:'R' },
-        { task:'التقارير للشركاء',     alaa:'R',    abu:'I',    joud:'R',   anas:'A',   aref:'-',    alm:'-' },
-        { task:'التطوير والابتكار',    alaa:'R, A', abu:'C',    joud:'C',   anas:'I',   aref:'C',    alm:'-' }
+        { task:'تشغيل الحماصة الرائدة وضبط البروفايلات', alaa:'R, A', abdullah:'C',    joud:'I',   anas:'I',   aref:'C',    elem:'-' },
+        { task:'جلسات Cupping وتقييم جودة حبوب البن',     alaa:'R, A', abdullah:'C',    joud:'I',   anas:'I',   aref:'C',    elem:'C' },
+        { task:'إدارة العمليات الميدانية وانضباط الشفتات', alaa:'C',    abdullah:'R, A', joud:'I',   anas:'I',   aref:'R',    elem:'R' },
+        { task:'سلاسل الإمداد ومخزون الحليب والأكواب',     alaa:'C',    abdullah:'R, A', joud:'I',   anas:'C',   aref:'I',    elem:'I' },
+        { task:'صيانة ماكينة الإسبريسو والمطاحن والمعدات', alaa:'C',    abdullah:'R, A', joud:'I',   anas:'I',   aref:'C',    elem:'C' },
+        { task:'مبيعات الجملة B2B والتفاوض مع المقاهي',    alaa:'C',    abdullah:'C',    joud:'R, A',anas:'I',   aref:'-',    elem:'-' },
+        { task:'التسويق الرقمي والهوية وحملات السوشيال',   alaa:'C',    abdullah:'I',    joud:'R, A',anas:'I',   aref:'-',    elem:'-' },
+        { task:'الإدارة المالية، الفوترة، ومطابقة البنوك', alaa:'I',    abdullah:'I',    joud:'I',   anas:'R, A',aref:'-',    elem:'-' },
+        { task:'مراقبة التدفق النقدي ونموذج نقطة التعادل', alaa:'C',    abdullah:'I',    joud:'C',   anas:'R, A',aref:'-',    elem:'-' },
+        { task:'تحضير المشروبات وخدمة الزوار بالبار',      alaa:'C',    abdullah:'A',    joud:'I',   anas:'-',   aref:'R',    elem:'R' }
     ];
 
     function badge(val) {
-        if (val === '-') return '<span style="color:var(--border-color)">—</span>';
-        const cls = val.includes('A') ? 'success' : val.includes('R') ? 'info' : val.includes('C') ? 'warning' : 'danger';
+        if (val === '-') return '<span style="color:var(--border-muted)">—</span>';
+        const cls = val.includes('A') ? 'badge-green' : val.includes('R') ? 'badge-blue' : val.includes('C') ? 'badge-warning' : 'badge-subtle';
         return `<span class="badge ${cls}">${val}</span>`;
     }
 
     return `
         <div class="page-header">
-            <h2 class="page-title">مصفوفة المسؤوليات (RACI Matrix)</h2>
-            <p class="page-subtitle">توضيح الأدوار والمسؤوليات لكل مهمة</p>
+            <h2 class="page-title">مصفوفة المسؤوليات وحوكمة القرارات (RACI Matrix)</h2>
+            <p class="page-subtitle">تحديد دقيق للمسؤوليات بين الشركاء المؤسسين الأربعة وكادر البار الميداني لضمان انعدام تضارب الصلاحيات</p>
         </div>
 
-        <div class="alert info">
-            <i class="fas fa-info-circle"></i>
+        <div class="alert info" style="margin-bottom:1.5rem;">
+            <i class="fas fa-shield-halved"></i>
             <div>
-                <strong>R</strong> = Responsible (منفذ) &nbsp;|&nbsp;
-                <strong>A</strong> = Accountable (مسؤول) &nbsp;|&nbsp;
-                <strong>C</strong> = Consulted (مستشار) &nbsp;|&nbsp;
-                <strong>I</strong> = Informed (مُبلّغ)
+                <strong>دليل الرموز:</strong>
+                <strong>R</strong> = المنفذ المباشر (Responsible) &nbsp;|&nbsp;
+                <strong>A</strong> = صاحب القرار والمساءلة النهائية (Accountable) &nbsp;|&nbsp;
+                <strong>C</strong> = المستشار الفني (Consulted) &nbsp;|&nbsp;
+                <strong>I</strong> = المطلع على النتائج (Informed) &nbsp;|&nbsp;
+                <strong>ملاحظة حوكمة:</strong> كادر البار (عارف وعلم) محددون حصراً كباريستا تنفيذيين دون مهام إدارية.
             </div>
         </div>
 
         <div class="table-card">
-            <div class="table-header"><h3 class="table-title">المهام الرئيسية</h3></div>
+            <div class="table-header"><h3 class="table-title">مصفوفة الصلاحيات المعتمدة لـ RoR</h3></div>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th style="min-width:180px">المهمة</th>
-                            <th>علاء</th><th>أبو محمد</th><th>جود</th>
-                            <th>أنس</th><th>عارف</th><th>علم</th>
+                            <th style="min-width:220px">المجال التشغيلي</th>
+                            <th>علاء يوسف (CSA)</th>
+                            <th>عبد الله القصير (COO)</th>
+                            <th>جود القصير (CEO & CMO)</th>
+                            <th>أنس الصفدي (CFO)</th>
+                            <th>عارف (باريستا صباحي)</th>
+                            <th>علم (باريستا مسائي)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -944,11 +1485,11 @@ function getRACIMatrixContent() {
                             <tr>
                                 <td><strong>${r.task}</strong></td>
                                 <td>${badge(r.alaa)}</td>
-                                <td>${badge(r.abu)}</td>
+                                <td>${badge(r.abdullah)}</td>
                                 <td>${badge(r.joud)}</td>
                                 <td>${badge(r.anas)}</td>
                                 <td>${badge(r.aref)}</td>
-                                <td>${badge(r.alm)}</td>
+                                <td>${badge(r.elem)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -958,195 +1499,109 @@ function getRACIMatrixContent() {
     `;
 }
 
-// ====== WASTE & CASHFLOW ======
+// ===================================================================
+// 8. WASTE & CASHFLOW TRACKING (WITH DAILY GUARDRAIL)
+// ===================================================================
 function getWasteCashflowContent() {
-    return `
-        <div class="page-header">
-            <h2 class="page-title">إدارة الهدر والسيولة النقدية</h2>
-            <p class="page-subtitle">تتبع الهدر وتحسين التدفقات المالية</p>
-        </div>
+    const wasteLogs = window.DataService.getWasteLogs();
 
-        <div class="table-card">
-            <div class="table-header"><h3 class="table-title">تتبع الهدر (آخر 7 أيام)</h3></div>
-            <div class="stats-grid">
-                <div class="stat-card danger">
-                    <div class="stat-header"><span class="stat-title">هدر البن</span><div class="stat-icon danger"><i class="fas fa-mug-hot"></i></div></div>
-                    <div class="stat-value">2.5 كجم</div>
-                    <div class="stat-change negative"><span>قيمة: 350 ريال</span></div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-header"><span class="stat-title">هدر الحليب</span><div class="stat-icon warning"><i class="fas fa-glass-whiskey"></i></div></div>
-                    <div class="stat-value">8 لتر</div>
-                    <div class="stat-change negative"><span>قيمة: 80 ريال</span></div>
-                </div>
-                <div class="stat-card info">
-                    <div class="stat-header"><span class="stat-title">هدر المعجنات</span><div class="stat-icon primary"><i class="fas fa-cookie-bite"></i></div></div>
-                    <div class="stat-value">12 قطعة</div>
-                    <div class="stat-change negative"><span>قيمة: 90 ريال</span></div>
-                </div>
-                <div class="stat-card danger">
-                    <div class="stat-header"><span class="stat-title">إجمالي الهدر</span><div class="stat-icon danger"><i class="fas fa-exclamation-circle"></i></div></div>
-                    <div class="stat-value">520 ريال</div>
-                    <div class="stat-change"><span>2.1% من المبيعات</span></div>
-                </div>
+    // Calculate today's waste (dynamic date)
+    const _todayD = new Date();
+    const todayStr = `${_todayD.getFullYear()}-${String(_todayD.getMonth()+1).padStart(2,'0')}-${String(_todayD.getDate()).padStart(2,'0')}`;
+    const todayWaste = wasteLogs.filter(w => w.date === todayStr).reduce((sum, w) => sum + (parseFloat(w.costSAR) || 0), 0);
+    const totalWasteWeek = wasteLogs.reduce((sum, w) => sum + (parseFloat(w.costSAR) || 0), 0);
+    const isExceedThreshold = todayWaste > 100.0;
+
+    return `
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 class="page-title">إدارة مكافحة الهدر والسيولة النقدية</h2>
+                <p class="page-subtitle">تتبع تفصيلي لهدر البن والحليب والمستهلكات مع تطبيق نظام الإنذار المبكر لحماية الأرباح</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-primary" onclick="openWasteLogModal()" style="background:#DC2626;border-color:#DC2626;">
+                    <i class="fas fa-trash-can"></i> تسجيل واقعة هدر
+                </button>
             </div>
         </div>
 
-        <div class="table-card">
-            <div class="table-header"><h3 class="table-title">التدفق النقدي (شهري)</h3></div>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>البند</th><th>المبلغ</th><th>النوع</th><th>الحالة</th></tr></thead>
-                    <tbody>
-                        <tr><td>مبيعات نقدية</td><td style="color:var(--success);font-weight:600">+45,000 ريال</td><td><span class="badge success">تدفق داخل</span></td><td><span class="badge success">مستلم</span></td></tr>
-                        <tr><td>مبيعات آجلة (B2B)</td><td style="color:var(--success);font-weight:600">+23,500 ريال</td><td><span class="badge success">تدفق داخل</span></td><td><span class="badge warning">معلق</span></td></tr>
-                        <tr><td>إيجار</td><td style="color:var(--danger);font-weight:600">-12,000 ريال</td><td><span class="badge danger">تدفق خارج</span></td><td><span class="badge success">مدفوع</span></td></tr>
-                        <tr><td>رواتب</td><td style="color:var(--danger);font-weight:600">-10,000 ريال</td><td><span class="badge danger">تدفق خارج</span></td><td><span class="badge success">مدفوع</span></td></tr>
-                        <tr><td>شراء خامات</td><td style="color:var(--danger);font-weight:600">-18,500 ريال</td><td><span class="badge danger">تدفق خارج</span></td><td><span class="badge success">مدفوع</span></td></tr>
-                        <tr><td>كهرباء وماء</td><td style="color:var(--danger);font-weight:600">-3,200 ريال</td><td><span class="badge danger">تدفق خارج</span></td><td><span class="badge warning">قريباً</span></td></tr>
-                        <tr style="border-top:2px solid var(--border-color);font-weight:700">
-                            <td><strong>صافي التدفق النقدي</strong></td>
-                            <td style="color:var(--success);font-size:1.1rem">+24,800 ريال</td>
-                            <td colspan="2"><span class="badge success"><i class="fas fa-check"></i> إيجابي</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+        ${isExceedThreshold ? `
+            <div class="alert danger" style="margin-bottom:1.5rem;animation:fadeIn 0.3s ease;">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>
+                    <strong>إنذار مالي حرج:</strong> تجاوز إجمالي هدر اليوم الحد اليومي المسموح به (${todayWaste.toFixed(2)} ر.س > 100.00 ر.س). يرجى التحقق الفوري من معايرة الطاحونة وتبخير الحليب.
+                </div>
             </div>
-        </div>
+        ` : ''}
 
-        <div class="alert success">
-            <i class="fas fa-check-circle"></i>
-            <div><strong>الوضع الصحي:</strong> التدفق النقدي إيجابي، ولكن يجب متابعة المبيعات الآجلة البالغة 23,500 ريال</div>
-        </div>
-    `;
-}
-
-// ====== VISION DASHBOARD ======
-function getVisionDashboardContent() {
-    return `
-        <div class="page-header">
-            <h2 class="page-title">الرؤية الانتقالية ولوحة الأداء المالي</h2>
-            <p class="page-subtitle">ملخص شامل للأداء التشغيلي والمالي</p>
-        </div>
-
+        <!-- Waste Summary KPI Cards -->
         <div class="stats-grid">
-            <div class="stat-card primary">
-                <div class="stat-header"><span class="stat-title">إجمالي الإيرادات (شهري)</span><div class="stat-icon primary"><i class="fas fa-chart-line"></i></div></div>
-                <div class="stat-value">80,000 ريال</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>18% عن الشهر الماضي</span></div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-header"><span class="stat-title">مبيعات البار</span><div class="stat-icon success"><i class="fas fa-coffee"></i></div></div>
-                <div class="stat-value">48,000 ريال</div>
-                <div class="stat-change"><span>60% من الإجمالي</span></div>
-            </div>
-            <div class="stat-card warning">
-                <div class="stat-header"><span class="stat-title">مبيعات المحمصة</span><div class="stat-icon warning"><i class="fas fa-fire"></i></div></div>
-                <div class="stat-value">32,000 ريال</div>
-                <div class="stat-change"><span>40% من الإجمالي</span></div>
-            </div>
             <div class="stat-card danger">
-                <div class="stat-header"><span class="stat-title">إجمالي المصاريف</span><div class="stat-icon danger"><i class="fas fa-receipt"></i></div></div>
-                <div class="stat-value">55,200 ريال</div>
-                <div class="stat-change"><span>69% من الإيرادات</span></div>
-            </div>
-        </div>
-
-        <div class="table-card" style="text-align:center">
-            <div class="table-header"><h3 class="table-title">صافي الدخل التشغيلي</h3></div>
-            <div class="stat-card success" style="max-width:360px;margin:0 auto">
-                <div class="stat-header"><span class="stat-title">الربح الشهري الصافي</span><div class="stat-icon success"><i class="fas fa-money-bill-wave"></i></div></div>
-                <div class="stat-value">24,800 ريال</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>31% هامش صافي الربح</span></div>
-            </div>
-        </div>
-
-        <div class="charts-grid">
-            <div class="chart-card">
-                <div class="chart-header"><h3 class="chart-title">الإيرادات الشهرية (6 أشهر)</h3></div>
-                <div class="chart-container"><canvas id="monthlyRevenueChart"></canvas></div>
-            </div>
-            <div class="chart-card">
-                <div class="table-header"><h3 class="table-title">توزيع المصاريف</h3></div>
-                <div class="table-responsive">
-                    <table>
-                        <thead><tr><th>بند المصروف</th><th>المبلغ</th><th>النسبة</th></tr></thead>
-                        <tbody>
-                            <tr><td>تكلفة البضاعة المباعة</td><td>27,200 ريال</td><td>34%</td></tr>
-                            <tr><td>إيجار</td><td>12,000 ريال</td><td>15%</td></tr>
-                            <tr><td>رواتب</td><td>10,000 ريال</td><td>12.5%</td></tr>
-                            <tr><td>كهرباء وماء</td><td>3,500 ريال</td><td>4.4%</td></tr>
-                            <tr><td>مصاريف أخرى</td><td>2,500 ريال</td><td>3.1%</td></tr>
-                            <tr style="font-weight:700;border-top:2px solid var(--border-color)">
-                                <td>الإجمالي</td><td>55,200 ريال</td><td>69%</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="stat-header"><span class="stat-title">هدر اليوم الميداني</span><div class="stat-icon danger"><i class="fas fa-trash-can"></i></div></div>
+                <div class="stat-value">${todayWaste.toFixed(2)} ر.س</div>
+                <div class="stat-change ${isExceedThreshold ? 'negative' : 'positive'}">
+                    <span>${isExceedThreshold ? 'تجاوز سقف 100 ر.س' : 'ضمن النطاق الآمن (<100 ر.س)'}</span>
                 </div>
             </div>
-        </div>
 
-        <div class="alert info">
-            <i class="fas fa-lightbulb"></i>
-            <div><strong>التوصية:</strong> هامش الربح جيد (31%)، ويمكن تحسينه بتقليل تكلفة البضاعة المباعة من خلال التفاوض مع الموردين</div>
-        </div>
-    `;
-}
+            <div class="stat-card warning">
+                <div class="stat-header"><span class="stat-title">إجمالي هدر الأسبوع</span><div class="stat-icon warning"><i class="fas fa-coins"></i></div></div>
+                <div class="stat-value">${totalWasteWeek.toFixed(2)} ر.س</div>
+                <div class="stat-change"><span>مجموع كافة العمليات المسجلة</span></div>
+            </div>
 
-// ====== FINANCIAL COMMITMENTS ======
-function getFinancialCommitmentsContent() {
-    return `
-        <div class="page-header">
-            <h2 class="page-title">حصر الالتزامات والمصاريف المالية</h2>
-            <p class="page-subtitle">تتبع وجدولة جميع التكاليف الثابتة والمتغيرة</p>
-        </div>
+            <div class="stat-card primary">
+                <div class="stat-header"><span class="stat-title">نسبة الهدر من المبيعات</span><div class="stat-icon primary"><i class="fas fa-percent"></i></div></div>
+                <div class="stat-value">1.8%</div>
+                <div class="stat-change positive"><span>الحد المعياري العالمي < 2.5%</span></div>
+            </div>
 
-        <div class="table-card">
-            <div class="table-header"><h3 class="table-title">التكاليف الثابتة الشهرية</h3></div>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>البند</th><th>المبلغ</th><th>تاريخ الاستحقاق</th><th>طريقة الدفع</th><th>الحالة</th><th>الإجراء</th></tr></thead>
-                    <tbody>
-                        <tr><td>الإيجار</td><td>12,000 ريال</td><td>1 من كل شهر</td><td>تحويل بنكي</td><td><span class="badge success">مدفوع</span></td><td><button class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="viewRentBtn">عرض</button></td></tr>
-                        <tr><td>الكهرباء</td><td>3,200 ريال</td><td>20 من كل شهر</td><td>SADAD</td><td><span class="badge warning">قريباً (5 أيام)</span></td><td><button class="btn btn-primary" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="payElectricBtn">دفع</button></td></tr>
-                        <tr><td>المقابل المالي (البلدية)</td><td>800 ريال</td><td>15 من كل شهر</td><td>تحويل بنكي</td><td><span class="badge success">مدفوع</span></td><td><button class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="viewMuniBtn">عرض</button></td></tr>
-                        <tr><td>التأمينات الاجتماعية</td><td>1,800 ريال</td><td>10 من كل شهر</td><td>خصم تلقائي</td><td><span class="badge success">مدفوع</span></td><td><button class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="viewInsBtn">عرض</button></td></tr>
-                        <tr><td>ترخيص الفال (سنوي)</td><td>500 ريال</td><td>مارس</td><td>تحويل بنكي</td><td><span class="badge info">قريباً (2 شهر)</span></td><td><button class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="remindFaalBtn">تذكير</button></td></tr>
-                        <tr><td>اشتراك Foodics</td><td>299 ريال</td><td>5 من كل شهر</td><td>بطاقة ائتمان</td><td><span class="badge success">مدفوع</span></td><td><button class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="viewFoodicsBtn">عرض</button></td></tr>
-                        <tr><td>اشتراك إنترنت</td><td>200 ريال</td><td>28 من كل شهر</td><td>خصم تلقائي</td><td><span class="badge success">نشط</span></td><td><button class="btn btn-outline" style="padding:0.25rem 0.75rem;font-size:0.82rem" id="viewNetBtn">عرض</button></td></tr>
-                    </tbody>
-                </table>
+            <div class="stat-card success">
+                <div class="stat-header"><span class="stat-title">صافي التدفق الإيجابي</span><div class="stat-icon success"><i class="fas fa-money-bill-wave"></i></div></div>
+                <div class="stat-value">+24,800 ر.س</div>
+                <div class="stat-change positive"><span>سيولة نقدية ممتازة</span></div>
             </div>
         </div>
 
+        <!-- Waste Logs Table -->
         <div class="table-card">
-            <div class="table-header"><h3 class="table-title">التكاليف المتغيرة (آخر شهر)</h3></div>
-            <div class="stats-grid">
-                <div class="stat-card primary"><div class="stat-header"><span class="stat-title">البن الأخضر</span><div class="stat-icon primary"><i class="fas fa-seedling"></i></div></div><div class="stat-value">12,500 ريال</div><div class="stat-change"><span>آخر طلب: 15/03/2024</span></div></div>
-                <div class="stat-card success"><div class="stat-header"><span class="stat-title">الحليب والمنكهات</span><div class="stat-icon success"><i class="fas fa-glass-whiskey"></i></div></div><div class="stat-value">6,800 ريال</div><div class="stat-change"><span>طلب أسبوعي</span></div></div>
-                <div class="stat-card warning"><div class="stat-header"><span class="stat-title">التغليف والأكياس</span><div class="stat-icon warning"><i class="fas fa-box"></i></div></div><div class="stat-value">2,400 ريال</div><div class="stat-change"><span>آخر طلب: 10/03/2024</span></div></div>
-                <div class="stat-card info"><div class="stat-header"><span class="stat-title">مواد تنظيف ومستهلكات</span><div class="stat-icon primary"><i class="fas fa-spray-can"></i></div></div><div class="stat-value">1,200 ريال</div><div class="stat-change"><span>شهري</span></div></div>
+            <div class="table-header">
+                <div>
+                    <h3 class="table-title">سجل الهدر الميداني المفصل</h3>
+                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات مسجلة بواسطة كادر البار والمحمصة لضبط الاستهلاك</p>
+                </div>
             </div>
-        </div>
-
-        <div class="alert warning">
-            <i class="fas fa-bell"></i>
-            <div><strong>تنبيهات الدفع:</strong> لديك 2 دفعة مستحقة خلال الأسبوع القادم (الكهرباء: 3,200 ريال)</div>
-        </div>
-
-        <div class="table-card">
-            <div class="table-header"><h3 class="table-title">التقويم المالي (هذا الشهر)</h3></div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المادة / الصنف</th>
+                            <th>الكمية</th>
+                            <th>التكلفة (ر.س)</th>
+                            <th>الوردية</th>
+                            <th>المسؤول</th>
+                            <th>سبب الهدر</th>
+                            <th style="width:70px;">حذف</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td>1 مارس</td><td>الإيجار</td><td>12,000 ريال</td><td><span class="badge success"><i class="fas fa-check"></i> مدفوع</span></td></tr>
-                        <tr><td>5 مارس</td><td>Foodics</td><td>299 ريال</td><td><span class="badge success"><i class="fas fa-check"></i> مدفوع</span></td></tr>
-                        <tr><td>10 مارس</td><td>التأمينات</td><td>1,800 ريال</td><td><span class="badge success"><i class="fas fa-check"></i> مدفوع</span></td></tr>
-                        <tr><td>15 مارس</td><td>البلدية</td><td>800 ريال</td><td><span class="badge success"><i class="fas fa-check"></i> مدفوع</span></td></tr>
-                        <tr style="background:#FFFBEB"><td>20 مارس</td><td>الكهرباء</td><td>3,200 ريال</td><td><span class="badge warning"><i class="fas fa-clock"></i> قريباً</span></td></tr>
-                        <tr><td>28 مارس</td><td>الإنترنت</td><td>200 ريال</td><td><span class="badge info">مجدول</span></td></tr>
-                        <tr><td>31 مارس</td><td>الرواتب</td><td>10,000 ريال</td><td><span class="badge info">مجدول</span></td></tr>
+                        ${wasteLogs.map(w => `
+                            <tr>
+                                <td style="font-weight:700;color:#0F172A;">${w.date}</td>
+                                <td style="font-weight:600;">${w.item}</td>
+                                <td>${w.quantity} ${w.unit}</td>
+                                <td style="font-weight:800;color:#DC2626;">-${parseFloat(w.costSAR).toFixed(2)} ر.س</td>
+                                <td><span class="badge ${w.shift === 'morning' ? 'badge-blue' : 'badge-oxford'}">${w.shift === 'morning' ? 'صباحي' : 'مسائي'}</span></td>
+                                <td><strong style="color:#0284C7;"><i class="fas fa-user-circle" style="margin-left:4px;"></i>${w.reportedBy}</strong></td>
+                                <td style="font-size:0.82rem;color:#64748B;">${w.reason}</td>
+                                <td>
+                                    <button type="button" class="btn btn-outline" onclick="window.DataService.deleteWasteLog(${w.id}); loadPage('waste-cashflow');" style="padding:4px 8px;font-size:0.75rem;color:#DC2626;" title="حذف السجل">
+                                        <i class="fas fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
                     </tbody>
                 </table>
             </div>
@@ -1154,60 +1609,50 @@ function getFinancialCommitmentsContent() {
     `;
 }
 
-// ====== CAFE SALES (OFFICIAL AREF & ELEM SHIFT SYSTEM) ======
+// ===================================================================
+// 9. CAFÉ BAR SALES & SHIFTS (AREF & ELEM)
+// ===================================================================
 function getCafeSalesContent() {
-    const shiftReports = [
-        { date: "2026-09-15", shift: "صباحي (عارف)", barista: "عارف", cups: 72, desserts: 14, revenue: 1320, tickets: 53, avgTicket: 24.9, notes: "إقبال ممتاز على قهوة اليوم والكرواسون" },
-        { date: "2026-09-14", shift: "مسائي (علم)", barista: "علم", cups: 92, desserts: 22, revenue: 1720, tickets: 64, avgTicket: 26.8, notes: "ذروة مسائية عالية ومبيعات كولد برو ممتازة" },
-        { date: "2026-09-14", shift: "صباحي (عارف)", barista: "عارف", cups: 65, desserts: 11, revenue: 1185, tickets: 48, avgTicket: 24.6, notes: "حركة منتظمة ومعايرة ممتازة للفلتر" },
-        { date: "2026-09-13", shift: "مسائي (علم)", barista: "علم", cups: 88, desserts: 19, revenue: 1590, tickets: 60, avgTicket: 26.5, notes: "طلب عالي على الحلى والمشروبات الباردة" },
-        { date: "2026-09-13", shift: "صباحي (عارف)", barista: "عارف", cups: 58, desserts: 9, revenue: 1040, tickets: 42, avgTicket: 24.7, notes: "فترة الصباح هادئة ومبيعات بن منزلي" }
-    ];
+    const shiftReports = window.DataService.getCafeSales();
 
-    const totalMorningRev = 1320 + 1185 + 1040;
-    const totalEveningRev = 1720 + 1590;
-    const totalCups = 72 + 92 + 65 + 88 + 58;
+    const morningSales = shiftReports.filter(s => s.barista === 'عارف').reduce((sum, s) => sum + (parseFloat(s.revenue) || 0), 0);
+    const eveningSales = shiftReports.filter(s => s.barista === 'علم').reduce((sum, s) => sum + (parseFloat(s.revenue) || 0), 0);
+    const totalRev = morningSales + eveningSales;
+    const totalCups = shiftReports.reduce((sum, s) => sum + (parseInt(s.cups) || 0), 0);
 
     return `
-        <div class="page-header">
-            <h2 class="page-title">تقارير مبيعات البار والورديات (وردية عارف وعلم)</h2>
-            <p class="page-subtitle">تتبع تفصيلي لأداء شفتات البار: الوردية الصباحية (عارف 8:00 - 16:00) والوردية المسائية (علم 16:00 - 00:00)</p>
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 class="page-title">تقارير مبيعات البار والورديات (وردية عارف وعلم)</h2>
+                <p class="page-subtitle">تتبع تفصيلي لأداء شفتات البار: الوردية الصباحية (عارف 8:00 - 16:00) والوردية المسائية (علم 16:00 - 00:00)</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-primary" onclick="openCafeShiftModal()"><i class="fas fa-plus"></i> تسجيل تقرير وردية</button>
+            </div>
         </div>
 
         <!-- Stat Summary Grid -->
         <div class="stats-grid">
             <div class="stat-card primary">
-                <div class="stat-header">
-                    <span class="stat-title">إجمالي مبيعات الورديات</span>
-                    <div class="stat-icon primary"><i class="fas fa-cash-register"></i></div>
-                </div>
-                <div class="stat-value">${(totalMorningRev + totalEveningRev).toLocaleString('en-US')} ر.س</div>
-                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>مجموع آخر 5 ورديات</span></div>
+                <div class="stat-header"><span class="stat-title">إجمالي مبيعات البار المسجلة</span><div class="stat-icon primary"><i class="fas fa-cash-register"></i></div></div>
+                <div class="stat-value">${totalRev.toLocaleString('en-US')} ر.س</div>
+                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>مجموع كافة الورديات</span></div>
             </div>
 
             <div class="stat-card success">
-                <div class="stat-header">
-                    <span class="stat-title">الوردية الصباحية (عارف)</span>
-                    <div class="stat-icon success"><i class="fas fa-sun"></i></div>
-                </div>
-                <div class="stat-value">${totalMorningRev.toLocaleString('en-US')} ر.س</div>
-                <div class="stat-change"><span>195 كوب | متوسط تذكرة 24.7 ر.س</span></div>
+                <div class="stat-header"><span class="stat-title">الوردية الصباحية (عارف)</span><div class="stat-icon success"><i class="fas fa-sun"></i></div></div>
+                <div class="stat-value">${morningSales.toLocaleString('en-US')} ر.س</div>
+                <div class="stat-change"><span>إقبال عالي على V60 وقهوة اليوم</span></div>
             </div>
 
             <div class="stat-card warning">
-                <div class="stat-header">
-                    <span class="stat-title">الوردية المسائية (علم)</span>
-                    <div class="stat-icon warning"><i class="fas fa-moon"></i></div>
-                </div>
-                <div class="stat-value">${totalEveningRev.toLocaleString('en-US')} ر.س</div>
-                <div class="stat-change"><span>180 كوب | متوسط تذكرة 26.6 ر.س</span></div>
+                <div class="stat-header"><span class="stat-title">الوردية المسائية (علم)</span><div class="stat-icon warning"><i class="fas fa-moon"></i></div></div>
+                <div class="stat-value">${eveningSales.toLocaleString('en-US')} ر.س</div>
+                <div class="stat-change"><span>ذروة مسائية وطلبات المشروبات الباردة</span></div>
             </div>
 
             <div class="stat-card info">
-                <div class="stat-header">
-                    <span class="stat-title">إجمالي الأكواب المباعة</span>
-                    <div class="stat-icon primary"><i class="fas fa-mug-hot"></i></div>
-                </div>
+                <div class="stat-header"><span class="stat-title">إجمالي الأكواب المباعة</span><div class="stat-icon primary"><i class="fas fa-mug-hot"></i></div></div>
                 <div class="stat-value">${totalCups} كوب</div>
                 <div class="stat-change positive"><span>معدل تدفق 18 كوب / ساعة ذروة</span></div>
             </div>
@@ -1216,15 +1661,11 @@ function getCafeSalesContent() {
         <!-- Shift Charts Grid -->
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title"><i class="fas fa-chart-column" style="color:#0284C7;margin-left:6px;"></i> مقارنة مبيعات الشفتات (عارف vs علم)</h3>
-                </div>
+                <div class="chart-header"><h3 class="chart-title"><i class="fas fa-chart-column" style="color:#0284C7;margin-left:6px;"></i> مقارنة مبيعات الشفتات (عارف vs علم)</h3></div>
                 <div class="chart-container"><canvas id="shiftComparisonChart"></canvas></div>
             </div>
             <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title"><i class="fas fa-chart-pie" style="color:#10B981;margin-left:6px;"></i> المشروبات الأكثر طلباً في البار</h3>
-                </div>
+                <div class="chart-header"><h3 class="chart-title"><i class="fas fa-chart-pie" style="color:#10B981;margin-left:6px;"></i> المشروبات الأكثر طلباً في البار</h3></div>
                 <div class="chart-container"><canvas id="topProductsChart"></canvas></div>
             </div>
         </div>
@@ -1234,11 +1675,7 @@ function getCafeSalesContent() {
             <div class="table-header">
                 <div>
                     <h3 class="table-title">سجل ورديات مبيعات البار اليومية التفصيلي</h3>
-                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات مسجلة ومطابقة مع نظام نقاط البيع POS</p>
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-primary" onclick="alert('تم تصدير سجل الورديات بنجاح إلى ملف CSV.')"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات مطابقة لنظام نقاط البيع POS</p>
                 </div>
             </div>
 
@@ -1249,8 +1686,8 @@ function getCafeSalesContent() {
                             <th>التاريخ</th>
                             <th>الوردية / الشفت</th>
                             <th>الباريستا المسؤول</th>
-                            <th>عدد الأكواب</th>
-                            <th>قطع الحلويات</th>
+                            <th>الأكواب</th>
+                            <th>الحلويات</th>
                             <th>إجمالي المبيعات</th>
                             <th>عدد الفواتير</th>
                             <th>متوسط الفاتورة</th>
@@ -1267,10 +1704,10 @@ function getCafeSalesContent() {
                                     <td><strong style="color:#0284C7;"><i class="fas fa-user-circle" style="margin-left:4px;"></i>${s.barista}</strong></td>
                                     <td style="font-weight:700;">${s.cups} كوب</td>
                                     <td>${s.desserts} قطعة</td>
-                                    <td style="font-weight:800;color:#10B981;">${s.revenue.toLocaleString('en-US')} ر.س</td>
+                                    <td style="font-weight:800;color:#10B981;">${parseFloat(s.revenue).toLocaleString('en-US')} ر.س</td>
                                     <td>${s.tickets}</td>
-                                    <td style="font-weight:700;color:#0F172A;">${s.avgTicket.toFixed(1)} ر.س</td>
-                                    <td style="font-size:0.8rem;color:#64748B;">${s.notes}</td>
+                                    <td style="font-weight:700;color:#0F172A;">${parseFloat(s.avgTicket).toFixed(1)} ر.س</td>
+                                    <td style="font-size:0.8rem;color:#64748B;">${s.notes || '—'}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -1281,77 +1718,63 @@ function getCafeSalesContent() {
     `;
 }
 
-// ====== ROASTERY SALES (PRIMARY ROASTER "الحماصة الرائدة" B2B & RETAIL) ======
+// ===================================================================
+// 10. ROASTERY SALES & PRODUCTION (PRIMARY ROASTER)
+// ===================================================================
 function getRoasterySalesContent() {
-    const roastSales = [
-        { date: "2026-09-15", client: "مقهى الأفق (حائل)", kg: 50, pricePerKg: 75, type: "wholesale", paid: 3750, pending: 0, status: "مكتمل" },
-        { date: "2026-09-14", client: "مبيعات رف الفرع (أرباع 250جم)", kg: 25, pricePerKg: 110, type: "retail", paid: 2750, pending: 0, status: "مكتمل" },
-        { date: "2026-09-12", client: "سلسلة مقاهي نجد المختصة", kg: 80, pricePerKg: 82, type: "wholesale", paid: 6560, pending: 0, status: "مكتمل" },
-        { date: "2026-09-10", client: "متجر RoR الإلكتروني (أرباع 250جم)", kg: 18, pricePerKg: 95, type: "retail", paid: 1710, pending: 0, status: "مكتمل" }
-    ];
+    const roastSales = window.DataService.getRoasterySales();
 
-    const totalKg = roastSales.reduce((sum, r) => sum + r.kg, 0);
-    const totalRevenue = roastSales.reduce((sum, r) => sum + r.paid, 0);
-    const wholesaleKg = roastSales.filter(r => r.type === 'wholesale').reduce((sum, r) => sum + r.kg, 0);
-    const retailKg = roastSales.filter(r => r.type === 'retail').reduce((sum, r) => sum + r.kg, 0);
+    const totalKg = roastSales.reduce((sum, r) => sum + (parseFloat(r.roastedKg) || 0), 0);
+    const totalRevenue = roastSales.reduce((sum, r) => sum + (parseFloat(r.paid) || 0), 0);
+    const wholesaleKg = roastSales.filter(r => r.type === 'wholesale').reduce((sum, r) => sum + (parseFloat(r.roastedKg) || 0), 0);
+    const retailKg = roastSales.filter(r => r.type === 'retail').reduce((sum, r) => sum + (parseFloat(r.roastedKg) || 0), 0);
 
     return `
-        <div class="page-header">
-            <h2 class="page-title">تقارير إنتاج ومبيعات المحمصة (الحماصة الرائدة)</h2>
-            <p class="page-subtitle">إدارة مبيعات الجملة B2B وتوزيع أرباع البن (250جم) لرف الفرع والمتجر الإلكتروني عبر "الحماصة الرائدة"</p>
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 class="page-title">تقارير إنتاج ومبيعات المحمصة (الحماصة الرائدة)</h2>
+                <p class="page-subtitle">إدارة مبيعات الجملة B2B وتوزيع أرباع البن (250جم) لرف الفرع والمتجر الإلكتروني عبر "الحماصة الرائدة"</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-primary" onclick="openRoasteryBatchModal()"><i class="fas fa-plus"></i> تسجيل دفعة تحميص</button>
+            </div>
         </div>
 
         <!-- KPI Stat Grid -->
         <div class="stats-grid">
             <div class="stat-card primary">
-                <div class="stat-header">
-                    <span class="stat-title">إجمالي إيراد التحميص</span>
-                    <div class="stat-icon primary"><i class="fas fa-fire-burner"></i></div>
-                </div>
+                <div class="stat-header"><span class="stat-title">إجمالي إيراد التحميص</span><div class="stat-icon primary"><i class="fas fa-fire-burner"></i></div></div>
                 <div class="stat-value">${totalRevenue.toLocaleString('en-US')} ر.س</div>
                 <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>الحماصة الرائدة</span></div>
             </div>
 
             <div class="stat-card success">
-                <div class="stat-header">
-                    <span class="stat-title">إجمالي البن المحمص</span>
-                    <div class="stat-icon success"><i class="fas fa-weight-hanging"></i></div>
-                </div>
+                <div class="stat-header"><span class="stat-title">إجمالي البن المحمص</span><div class="stat-icon success"><i class="fas fa-weight-hanging"></i></div></div>
                 <div class="stat-value">${totalKg} كجم</div>
                 <div class="stat-change positive"><span>معدل فقد وزن مثالي (<14.5%)</span></div>
             </div>
 
             <div class="stat-card warning">
-                <div class="stat-header">
-                    <span class="stat-title">عقود الجملة B2B</span>
-                    <div class="stat-icon warning"><i class="fas fa-handshake"></i></div>
-                </div>
+                <div class="stat-header"><span class="stat-title">عقود الجملة B2B</span><div class="stat-icon warning"><i class="fas fa-handshake"></i></div></div>
                 <div class="stat-value">${wholesaleKg} كجم</div>
-                <div class="stat-change"><span>مقهى الأفق + سلسلة مقاهي نجد</span></div>
+                <div class="stat-change"><span>عقود توريد شهرية مستمرة</span></div>
             </div>
 
             <div class="stat-card info">
-                <div class="stat-header">
-                    <span class="stat-title">مبيعات أرباع (250جم)</span>
-                    <div class="stat-icon primary"><i class="fas fa-bag-shopping"></i></div>
-                </div>
-                <div class="stat-value">${retailKg * 4} كيس</div>
-                <div class="stat-change"><span>${retailKg} كجم للرف والمتجر</span></div>
+                <div class="stat-header"><span class="stat-title">مبيعات أرباع (250جم)</span><div class="stat-icon primary"><i class="fas fa-bag-shopping"></i></div></div>
+                <div class="stat-value">${Math.round(retailKg * 4)} كيس</div>
+                <div class="stat-change"><span>${retailKg} كجم للرف والمتجر الإلكتروني</span></div>
             </div>
         </div>
 
         <!-- Roastery Charts -->
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title"><i class="fas fa-chart-pie" style="color:#0284C7;margin-left:6px;"></i> توزيع قنوات تصريف التحميص</h3>
-                </div>
+                <div class="chart-header"><h3 class="chart-title"><i class="fas fa-chart-pie" style="color:#0284C7;margin-left:6px;"></i> توزيع قنوات تصريف التحميص</h3></div>
                 <div class="chart-container"><canvas id="salesChannelsChart"></canvas></div>
             </div>
             <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title"><i class="fas fa-chart-line" style="color:#10B981;margin-left:6px;"></i> مسار نمو إنتاج الحماصة الرائدة</h3>
-                </div>
+                <div class="chart-header"><h3 class="chart-title"><i class="fas fa-chart-line" style="color:#10B981;margin-left:6px;"></i> مسار نمو إنتاج الحماصة الرائدة</h3></div>
                 <div class="chart-container"><canvas id="roasteryTrendChart"></canvas></div>
             </div>
         </div>
@@ -1361,11 +1784,7 @@ function getRoasterySalesContent() {
             <div class="table-header">
                 <div>
                     <h3 class="table-title">سجل صفقات وتوريد حبوب القهوة المحمصة</h3>
-                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات التوريد المعتمدة لعملاء الجملة والقطاعي</p>
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
-                    <button class="btn btn-primary" onclick="alert('تم تصدير سجل مبيعات المحمصة بنجاح.')"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                    <p style="margin:4px 0 0 0;font-size:0.8rem;color:#64748B;">بيانات التوريد المعتمدة لعملاء الجملة والتجزئة عبر الحماصة الرائدة</p>
                 </div>
             </div>
 
@@ -1376,27 +1795,34 @@ function getRoasterySalesContent() {
                             <th>التاريخ</th>
                             <th>العميل / القناة</th>
                             <th>نوع الطلبية</th>
-                            <th>الكمية (كجم)</th>
-                            <th>أكياس (250جم)</th>
+                            <th>البن الأخضر</th>
+                            <th>البن المحمص</th>
+                            <th>نسبة الفقد (Loss %)</th>
                             <th>سعر الكيلو</th>
-                            <th>إجمالي المدفوع</th>
-                            <th>حالة الطلب</th>
+                            <th>المبلغ الإجمالي</th>
+                            <th>الحالة</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${roastSales.map(r => {
                             const isWholesale = r.type === 'wholesale';
-                            const bags250 = isWholesale ? '-' : `${r.kg * 4} كيس`;
+                            const lossPct = parseFloat(r.roastLossPct) || 14.0;
+                            const isLossWarning = lossPct > 18.0;
                             return `
                                 <tr>
                                     <td style="font-weight:700;color:#0F172A;">${r.date}</td>
-                                    <td style="font-weight:800;color:#0F172A;">${r.client}</td>
-                                    <td><span class="badge ${isWholesale ? 'badge-oxford' : 'badge-blue'}">${isWholesale ? 'جملة (الحماصة الرائدة)' : 'أرباع تجزئة 250جم'}</span></td>
-                                    <td style="font-weight:800;color:#0284C7;">${r.kg} كجم</td>
-                                    <td>${bags250}</td>
-                                    <td style="color:#64748B;">${r.pricePerKg} ر.س</td>
-                                    <td style="font-weight:800;color:#10B981;">${r.paid.toLocaleString('en-US')} ر.س</td>
-                                    <td><span class="badge badge-green"><i class="fas fa-check-circle" style="margin-left:4px;"></i>${r.status}</span></td>
+                                    <td style="font-weight:600;"><i class="fas ${isWholesale ? 'fa-store' : 'fa-bag-shopping'}" style="color:#0284C7;margin-left:6px;"></i>${r.client}</td>
+                                    <td><span class="badge ${isWholesale ? 'badge-oxford' : 'badge-blue'}">${isWholesale ? 'جملة B2B' : 'أرباع تجزئة 250جم'}</span></td>
+                                    <td>${r.greenKg || '—'} كجم</td>
+                                    <td style="font-weight:700;">${r.roastedKg} كجم</td>
+                                    <td>
+                                        <span class="guardrail-badge ${isLossWarning ? 'danger' : 'safe'}">
+                                            ${lossPct}% ${isLossWarning ? '(حرج)' : '(طبيعي)'}
+                                        </span>
+                                    </td>
+                                    <td>${r.pricePerKg} ر.س</td>
+                                    <td style="font-weight:800;color:#10B981;">${parseFloat(r.paid).toLocaleString('en-US')} ر.س</td>
+                                    <td><span class="badge badge-green"><i class="fas fa-check" style="margin-left:4px;"></i>${r.status || 'مكتمل'}</span></td>
                                 </tr>
                             `;
                         }).join('')}
@@ -1407,84 +1833,124 @@ function getRoasterySalesContent() {
     `;
 }
 
-// ====== REVOLUTION PLAN ======
-function getRevolutionPlanContent() {
-    const phases = [
-        {
-            date: 'الأسبوع 1-2 | مارس 2024',
-            title: 'مرحلة التأسيس والاستقرار',
-            items: [
-                'إطلاق نظام RoR التشغيلي الموحد',
-                'تفعيل مصفوفة المسؤوليات (RACI)',
-                'بدء تسجيل البيانات اليومية بانتظام',
-                'تدريب الفريق على النظام الجديد'
-            ]
-        },
-        {
-            date: 'الأسبوع 3-4 | مارس 2024',
-            title: 'مرحلة تحسين الإيرادات',
-            items: [
-                'تطبيق هندسة القائمة وإزالة "الكلاب"',
-                'رفع أسعار المنتجات بنسبة 10%',
-                'إطلاق حملة المؤثرين (Barter)',
-                'استهداف 3 عملاء B2B جدد'
-            ]
-        },
-        {
-            date: 'أبريل 2024',
-            title: 'مرحلة التوسع والنمو',
-            items: [
-                'إطلاق المتجر الإلكتروني',
-                'التفاوض مع 2 نقطة بيع جديدة',
-                'إطلاق خط إنتاج محمصة جديد',
-                'توظيف مندوب مبيعات B2B متخصص'
-            ]
-        },
-        {
-            date: 'مايو - يونيو 2024',
-            title: 'مرحلة التعزيز والاستدامة',
-            items: [
-                'مراجعة KPIs وتعديل الأهداف',
-                'التخطيط لفرع ثانٍ أو محطة تحميص',
-                'تطوير برنامج ولاء العملاء',
-                'دراسة إمكانية التصدير للخارج'
-            ]
-        }
-    ];
+// ===================================================================
+// 11. FINANCIAL COMMITMENTS
+// ===================================================================
+function getFinancialCommitmentsContent() {
+    const commitments = window.DataService.getFinancials();
 
     return `
         <div class="page-header">
-            <h2 class="page-title">خطة ثورة RoR التنفيذية <i class="fas fa-rocket" style="color:var(--primary-color)"></i></h2>
-            <p class="page-subtitle">خارطة طريق التحول من الوضع الراهن إلى الريادة</p>
+            <h2 class="page-title">حصر الالتزامات والمصاريف المالية المجدولة</h2>
+            <p class="page-subtitle">جدولة المصاريف التشغيلية الثابتة والالتزامات التعاقدية لضمان سلامة التدفق النقدي</p>
         </div>
 
-        <div class="stats-grid" style="margin-bottom:2rem">
-            <div class="stat-card success"><div class="stat-header"><span class="stat-title">الهدف: إيرادات شهرية</span><div class="stat-icon success"><i class="fas fa-bullseye"></i></div></div><div class="stat-value">120,000 ريال</div><div class="stat-change"><span>بحلول ديسمبر 2024</span></div></div>
-            <div class="stat-card primary"><div class="stat-header"><span class="stat-title">الهدف: عملاء B2B</span><div class="stat-icon primary"><i class="fas fa-handshake"></i></div></div><div class="stat-value">25 عميل</div><div class="stat-change"><span>بحلول يونيو 2024</span></div></div>
-            <div class="stat-card warning"><div class="stat-header"><span class="stat-title">الهدف: نقاط البيع</span><div class="stat-icon warning"><i class="fas fa-store"></i></div></div><div class="stat-value">10 نقطة</div><div class="stat-change"><span>بحلول سبتمبر 2024</span></div></div>
-            <div class="stat-card info"><div class="stat-header"><span class="stat-title">الهدف: متابعو السوشيال</span><div class="stat-icon primary"><i class="fas fa-users"></i></div></div><div class="stat-value">10,000</div><div class="stat-change"><span>بحلول ديسمبر 2024</span></div></div>
-        </div>
-
-        <div class="timeline">
-            ${phases.map(p => `
-                <div class="timeline-item">
-                    <div class="timeline-date">${p.date}</div>
-                    <div class="timeline-title">${p.title}</div>
-                    <div class="timeline-body">
-                        <ul>${p.items.map(i => `<li>${i}</li>`).join('')}</ul>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-
-        <div class="alert success" style="margin-top:2rem">
-            <i class="fas fa-rocket"></i>
-            <div><strong>الرؤية:</strong> تحويل RoR إلى أبرز علامة تجارية للقهوة المتخصصة في المنطقة بحلول 2025</div>
+        <div class="table-card">
+            <div class="table-header"><h3 class="table-title">قائمة الالتزامات المالية</h3></div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>البند / الالتزام</th>
+                            <th>المبلغ</th>
+                            <th>تاريخ الاستحقاق</th>
+                            <th>طريقة الدفع</th>
+                            <th>النوع</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${commitments.map(c => `
+                            <tr>
+                                <td style="font-weight:700;color:#0F172A;">${c.title}</td>
+                                <td style="font-weight:800;color:#DC2626;">${parseFloat(c.amount).toLocaleString('en-US')} ر.س</td>
+                                <td>${c.dueDate}</td>
+                                <td>${c.paymentMethod}</td>
+                                <td><span class="badge ${c.type === 'fixed' ? 'badge-oxford' : 'badge-subtle'}">${c.type === 'fixed' ? 'ثابت' : 'متغير'}</span></td>
+                                <td><span class="badge ${c.status === 'paid' ? 'badge-green' : 'badge-warning'}">${c.status === 'paid' ? 'مدفوع' : 'مستحق قريباً'}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
         </div>
     `;
 }
 
-// ====== ORGANIZATIONAL BLUEPRINT (24-JOB STRUCTURE) ======
+// ===================================================================
+// 12. VISION DASHBOARD & REVOLUTION PLAN
+// ===================================================================
+function getVisionDashboardContent() {
+    return `
+        <div class="page-header">
+            <h2 class="page-title">الرؤية الانتقالية ولوحة الأداء المالي</h2>
+            <p class="page-subtitle">ملخص شامل للأداء التشغيلي والمالي والهوامش الربحية المستهدفة</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-header"><span class="stat-title">إجمالي الإيرادات (شهري)</span><div class="stat-icon primary"><i class="fas fa-chart-line"></i></div></div>
+                <div class="stat-value">80,000 ر.س</div>
+                <div class="stat-change positive"><i class="fas fa-arrow-up"></i> <span>18% نمو شهري</span></div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-header"><span class="stat-title">مبيعات البار</span><div class="stat-icon success"><i class="fas fa-coffee"></i></div></div>
+                <div class="stat-value">48,000 ر.س</div>
+                <div class="stat-change"><span>60% من الإجمالي</span></div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-header"><span class="stat-title">مبيعات المحمصة (الحماصة الرائدة)</span><div class="stat-icon warning"><i class="fas fa-fire"></i></div></div>
+                <div class="stat-value">32,000 ر.س</div>
+                <div class="stat-change"><span>40% من الإجمالي</span></div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-header"><span class="stat-title">إجمالي المصاريف التشغيلية</span><div class="stat-icon danger"><i class="fas fa-receipt"></i></div></div>
+                <div class="stat-value">55,200 ر.س</div>
+                <div class="stat-change"><span>69% من الإيرادات</span></div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header"><h3 class="chart-title">الإيرادات الشهرية المقارنة</h3></div>
+                <div class="chart-container"><canvas id="monthlyRevenueChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header"><h3 class="chart-title">توزيع المصروفات التشغيلية</h3></div>
+                <div class="chart-container"><canvas id="productDistChart"></canvas></div>
+            </div>
+        </div>
+    `;
+}
+
+function getRevolutionPlanContent() {
+    const phases = [
+        { date: 'الأسبوع 1-2 | مرحلة التأسيس والاستقرار', title: 'إطلاق نظام RoR التشغيلي الموحد وتثبيت مصفوفة RACI', items: ['إطلاق نظام الإدارة الموحد', 'تثبيت هوامش الربحية', 'تدريب باريستا البار على المعايرة', 'حصر الأصول الثابتة'] },
+        { date: 'الأسبوع 3-4 | مرحلة تحسين الهوامش', title: 'تطبيق هندسة القائمة وإزالة الأصناف المنخفضة (Dogs)', items: ['تنقية المنيو بناءً على المصفوفة الثنائية', 'استهداف 3 مقاهٍ جديدة لتوريد الجملة', 'تفعيل نموذج نقاط التعادل اليومي'] },
+        { date: 'الأسبوع 5-6 | مرحلة التوسع الميداني', title: 'تنشيط المتجر الإلكتروني وزيادة نقاط البيع', items: ['ربط المتجر الإلكتروني بالمخزون', 'تسكين شواغر التوسع الوظيفي', 'التفاوض مع موردي البن الأخضر للكميات'] },
+        { date: 'الأسبوع 7-8 | مرحلة التعزيز والريادة', title: 'اعتماد أدلة التشغيل القياسية SOPs وخطة التوسع', items: ['تسليم أدلة التشغيل للمدراء', 'تطوير خط إنتاج قهوة باردة معلبة RTD', 'اعتماد خطة افتتاح الفرع الثاني'] }
+    ];
+
+    return `
+        <div class="page-header">
+            <h2 class="page-title">خطة ثورة RoR التنفيذية</h2>
+            <p class="page-subtitle">خارطة طريق التحول المؤسسي من الوضع الراهن إلى الريادة الإقليمية</p>
+        </div>
+
+        <div class="timeline" style="margin-top:1.5rem;">
+            ${phases.map(p => `
+                <div class="timeline-item" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-right:4px solid #0284C7;">
+                    <div style="font-weight:700;color:#0284C7;font-size:0.85rem;margin-bottom:0.35rem;">${p.date}</div>
+                    <h3 style="font-size:1.05rem;color:#0F172A;margin-bottom:0.6rem;">${p.title}</h3>
+                    <ul style="padding-right:1.25rem;color:#64748B;font-size:0.85rem;line-height:1.6;">
+                        ${p.items.map(i => `<li>${i}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 function getOrgChartContent() {
     return `
         <div class="org-view-wrapper">
@@ -2242,16 +2708,11 @@ function getOrgChartContent() {
 
 // ====== ORGANIZATIONAL BLUEPRINT SCRIPT LOGIC ======
 function getOrgAssignedRoles() {
-    try {
-        const data = JSON.parse(localStorage.getItem('ror_org_structure') || '{"roles":[]}');
-        return data.roles || [];
-    } catch (e) {
-        return [];
-    }
+    return window.DataService.getOrgStructure();
 }
 
 function saveOrgAssignedRoles(roles) {
-    localStorage.setItem('ror_org_structure', JSON.stringify({ roles }));
+    window.DataService.saveOrgStructure(roles);
 }
 
 function recalculateOrgMetrics() {
@@ -2453,39 +2914,81 @@ window.searchBlueprint = function(query) {
     });
 };
 
-// ====== TEAM ROLES ======
+// ===================================================================
+// 13. TEAM ROLES & MIND MAP (ALIGNED WITH 4 PARTNERS & BARISTAS)
+// ===================================================================
 function getTeamRolesContent() {
     const team = [
         {
-            name: 'علاء يوسف', initial: 'ع', position: 'مدير العمليات والتطوير',
-            responsibilities: ['الإشراف على جميع العمليات', 'التحميص وضبط الجودة', 'تطوير المنتجات والخلطات', 'اتخاذ القرارات الاستراتيجية', 'إعداد التقارير للشركاء']
+            name: 'علاء يوسف',
+            initial: 'ع',
+            position: 'Chief Strategic Advisor (CSA) & Lead Roastmaster',
+            responsibilities: [
+                'القيادة الاستراتيجية ومراقبة مصفوفة الحوكمة وضبط هوامش الربحية.',
+                'تصميم وبرمجة منحنيات التحميص (Roast Profiles) للحماصة الرائدة.',
+                'قيادة جلسات تقييم جودة القهوة المختصة والتذوق الحسي (SCA Cupping).',
+                'تطوير الخلطات الحصرية وإدارة الشراكات المعرفية.'
+            ]
         },
         {
-            name: 'أبو محمد', initial: 'م', position: 'مدير المبيعات وتطوير الأعمال',
-            responsibilities: ['بناء علاقات العملاء B2B', 'زيارات ميدانية للعملاء المحتملين', 'التفاوض والإغلاق', 'تحديث CRM', 'تقارير المبيعات الشهرية']
+            name: 'جود القصير',
+            initial: 'ج',
+            position: 'Chief Executive Officer & Chief Marketing Officer (CEO & CMO)',
+            responsibilities: [
+                'القيادة العامة وتنسيق الخطط التطويرية وإدارة العمل المؤسسي الشامل.',
+                'إدارة مبيعات الجملة B2B وتوسيع قاعدة المقاهي والشركات الشريكة.',
+                'قيادة الحملات التسويقية الرقمية وإدارة منصات السوشيال ميديا والهوية.',
+                'تنشيط مبيعات الرف بالفرع والمتجر الإلكتروني وشراكات الضيافة.'
+            ]
         },
         {
-            name: 'جود', initial: 'ج', position: 'الإدارة المالية والمخزون',
-            responsibilities: ['تسجيل المعاملات اليومية', 'إعداد التقارير المالية', 'إدارة المخزون والطلبات', 'متابعة الذمم المدينة', 'إعداد الميزانيات']
+            name: 'عبد الله القصير',
+            initial: 'ع',
+            position: 'Chief Operating Officer (COO)',
+            responsibilities: [
+                'الإشراف اليومي الميداني على انضباط ورديات البار ونظافة المعرض.',
+                'إدارة سلاسل الإمداد ومستويات المخزون الحرج (Par Levels) ومكافحة الهدر.',
+                'التنسيق اللوجستي اليومي بين إنتاج الحماصة الرائدة واحتياجات الفرع.',
+                'متابعة الصيانة الدورية لمكائن الإسبريسو والمطاحن وأنظمة الفلاتر.'
+            ]
         },
         {
-            name: 'أنس', initial: 'أ', position: 'التخطيط الاستراتيجي والمالي',
-            responsibilities: ['تحليل البيانات والKPIs', 'التخطيط الاستراتيجي', 'تحليل التكاليف والربحية', 'دعم القرارات بالبيانات', 'متابعة مؤشرات الأداء']
+            name: 'أنس الصفدي',
+            initial: 'أ',
+            position: 'Chief Financial Officer (CFO)',
+            responsibilities: [
+                'مراقبة السيولة النقدية اليومية وإدارة نموذج نقطة التعادل (Break-Even).',
+                'إدارة سجلات المحاسبة، مسيرات الرواتب (Payroll)، والامتثال الضريبي ZATCA.',
+                'جدولة التزامات الموردين وإدارة صندوق النثرية الميداني.',
+                'إعداد القوائم المالية الشهرية (P&L) والتقارير التنفيذية للشركاء.'
+            ]
         },
         {
-            name: 'عارف', initial: 'ع', position: 'رئيس البار والخدمة',
-            responsibilities: ['الإشراف على عمليات البار', 'تدريب الباريستا', 'ضمان جودة المشروبات', 'تطوير قائمة المشروبات', 'خدمة العملاء المتميزة']
+            name: 'عارف',
+            initial: 'عا',
+            position: 'باريستا معتمد - الوردية الصباحية (08:00 - 16:00)',
+            responsibilities: [
+                'افتتاح البار الصباحي ومعايرة طواحين الإسبريسو والـ V60 بدقة.',
+                'تحضير المشروبات وخدمة ضيوف الصباح وفق المعايير المعتمدة.',
+                'تسجيل قراءات الاستخلاص والهدر الصباحي (التركيز الحصري على البار دون مهام إدارية).'
+            ]
         },
         {
-            name: 'علم', initial: 'ل', position: 'الصيانة والدعم الفني',
-            responsibilities: ['صيانة يومية لماكينة الإسبريسو', 'صيانة المطاحن والمعدات', 'فحص المحمصة الدوري', 'سجل الصيانة', 'الدعم الفني الطارئ']
+            name: 'علم',
+            initial: 'عل',
+            position: 'باريستا معتمد - الوردية المسائية (16:00 - 00:00)',
+            responsibilities: [
+                'إدارة فترات الذروة المسائية وتحضير المشروبات الساخنة والباردة.',
+                'تسويق أصناف الحلويات ومبيعات أكياس البن المنزلي للزوار.',
+                'إقفال البار اليومي، تنظيف وتعقيم المكائن والمطاحن وفق معايير HACCP.'
+            ]
         }
     ];
 
     return `
         <div class="page-header">
-            <h2 class="page-title">مهام فريق RoR</h2>
-            <p class="page-subtitle">توصيف وظيفي تفصيلي لكل عضو في الفريق</p>
+            <h2 class="page-title">توصيف مهام فريق RoR المؤسسي</h2>
+            <p class="page-subtitle">توزيع الأدوار التنفيذية بين الشركاء المؤسسين الأربعة وكادر البار الميداني المعتمد</p>
         </div>
 
         <div class="team-grid">
@@ -2499,7 +3002,7 @@ function getTeamRolesContent() {
                         </div>
                     </div>
                     <div class="team-responsibilities">
-                        <h4>المهام والمسؤوليات</h4>
+                        <h4>المهام والمسؤوليات المعتمدة</h4>
                         <ul>${m.responsibilities.map(r => `<li>${r}</li>`).join('')}</ul>
                     </div>
                 </div>
@@ -2508,23 +3011,20 @@ function getTeamRolesContent() {
     `;
 }
 
-// ====== MIND MAP ======
 function getMindMapContent() {
     const branches = [
-        { title: 'الإنتاج',        items: ['التحميص', 'ضبط الجودة', 'التغليف', 'خلطات جديدة'] },
-        { title: 'المبيعات',       items: ['B2B جملة', 'البار', 'أونلاين', 'نقاط بيع'] },
-        { title: 'التسويق',        items: ['Instagram', 'TikTok', 'Google', 'مؤثرون'] },
-        { title: 'المالية',        items: ['تقارير يومية', 'KPIs', 'تدفق نقدي', 'ميزانية'] },
-        { title: 'الفريق',         items: ['التدريب', 'الجداول', 'التقييم', 'الرواتب'] },
-        { title: 'التطوير',        items: ['منتجات جديدة', 'توسع فروع', 'تصدير', 'برامج ولاء'] },
-        { title: 'الجودة',         items: ['Cupping', 'SOP', 'معايير', 'شكاوى'] },
-        { title: 'اللوجستيات',    items: ['الشحن', 'المخزون', 'الموردون', 'التوصيل'] }
+        { title: 'الحماصة الرائدة والإنتاج', items: ['بروفايلات التحميص', 'فحص الرطوبة والكثافة', 'جلسات Cupping', 'تعبئة أكياس الأرباع'] },
+        { title: 'مبيعات الجملة B2B', items: ['عقود توريد المقاهي', 'عروض الأسعار المخصصة', 'عينات التذوق المجانية', 'شراكات المكاتب والشركات'] },
+        { title: 'البار وتجربة الزائر', items: ['شفت عارف الصباحي', 'شفت علم المسائي', 'معايرة الإسبريسو والـ V60', 'مكافحة الهدر الميداني'] },
+        { title: 'المالية والحوكمة', items: ['نموذج نقطة التعادل', 'الفوترة الإلكترونية ZATCA', 'مسيرات الرواتب', 'مطابقة البنوك ونقاط البيع'] },
+        { title: 'التسويق والهوية', items: ['فيديوهات TikTok و Reels', 'تقييمات Google Maps', 'حملات المؤثرين Barter', 'بطاقات المحاصيل الفاخرة'] },
+        { title: 'التطوير والتوسع', items: ['18 شاغراً مستهدفاً', 'خط القهوة المعلبة RTD', 'أدلة التشغيل القياسية SOP', 'دراسة الفرع الثاني'] }
     ];
 
     return `
         <div class="page-header">
-            <h2 class="page-title">الخريطة الذهنية لـ RoR</h2>
-            <p class="page-subtitle">رؤية شاملة لجميع محاور العمل</p>
+            <h2 class="page-title">الخريطة الذهنية لمؤسسة RoR</h2>
+            <p class="page-subtitle">رؤية شجرية مترابطة لكافة محاور العمليات وسلاسل القيمة</p>
         </div>
 
         <div class="mind-map-container">
@@ -2546,60 +3046,330 @@ function getMindMapContent() {
     `;
 }
 
-// ====== DEVELOPMENT ======
+// ===================================================================
+// 14. DEVELOPMENT & GROWTH (TRAINING, SOPS, ROADMAP, INNOVATION)
+// ===================================================================
 function getDevelopmentContent() {
-    const cards = [
-        { icon:'fa-graduation-cap', title:'تطوير الكوادر البشرية',    desc:'برامج تدريب متخصصة للباريستا والمحمصين على أحدث المعايير العالمية في صناعة القهوة المتخصصة.',   progress: 35 },
-        { icon:'fa-laptop-code',    title:'التحول الرقمي',             desc:'اعتماد أنظمة POS متقدمة، وإدارة المخزون ذكياً، وبناء منصة تجارة إلكترونية متكاملة.',          progress: 50 },
-        { icon:'fa-globe',          title:'التوسع الجغرافي',           desc:'دراسة جدوى لفتح فروع جديدة في أحياء مختارة، ومحطات تحميص متنقلة.',                             progress: 15 },
-        { icon:'fa-certificate',    title:'الشهادات والاعتمادات',      desc:'استهداف شهادة Q Grader والاعتماد من السنتر فور كوفي، لتعزيز مكانة العلامة التجارية.',          progress: 20 },
-        { icon:'fa-leaf',           title:'الاستدامة',                 desc:'اعتماد مبادئ البيئة المستدامة: تغليف قابل للتحلل، ومصادر بن أخلاقية، وتقليل البصمة الكربونية.',progress: 10 },
-        { icon:'fa-handshake',      title:'الشراكات الاستراتيجية',     desc:'بناء شراكات مع فنادق ومطاعم وشركات طيران لتوفير قهوة RoR كخيار رئيسي في المنشآت الفندقية.',   progress: 25 }
-    ];
+    const devItems = window.DataService.getDevPipeline();
+
+    const trainingItems = devItems.filter(d => d.category === 'training');
+    const sopItems = devItems.filter(d => d.category === 'sop');
+    const autoItems = devItems.filter(d => d.category === 'automation');
+    const innovItems = devItems.filter(d => d.category === 'innovation');
 
     return `
         <div class="page-header">
-            <h2 class="page-title">التطوير والنمو</h2>
-            <p class="page-subtitle">خارطة طريق التطوير المؤسسي ومبادرات النمو المستقبلية</p>
+            <h2 class="page-title">التطوير المؤسسي ومسارات النمو</h2>
+            <p class="page-subtitle">برامج التدريب، أدلة التشغيل القياسية (SOPs)، خارطة الأتمتة، ومشاريع الابتكار</p>
         </div>
 
-        <div class="alert info">
-            <i class="fas fa-info-circle"></i>
-            <div><strong>ملاحظة:</strong> هذه المبادرات تُنفَّذ بالتوازي مع العمليات اليومية — الأرقام تعكس نسبة التقدم الحالية</div>
+        <!-- 4 Pillars Grid -->
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-header"><span class="stat-title">مسارات التدريب والتأهيل</span><div class="stat-icon primary"><i class="fas fa-graduation-cap"></i></div></div>
+                <div class="stat-value">${trainingItems.length} برامج</div>
+                <div class="stat-change"><span>تطوير مهارات الباريستا والتحميص</span></div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-header"><span class="stat-title">أدلة التشغيل القياسية (SOP)</span><div class="stat-icon success"><i class="fas fa-book"></i></div></div>
+                <div class="stat-value">${sopItems.length} أدلة</div>
+                <div class="stat-change"><span>توثيق إجراءات العمل وضبط الجودة</span></div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-header"><span class="stat-title">خارطة التحول والأتمتة</span><div class="stat-icon warning"><i class="fas fa-robot"></i></div></div>
+                <div class="stat-value">${autoItems.length} مبادرات</div>
+                <div class="stat-change"><span>ربط المخزون، POS، والفوترة</span></div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-header"><span class="stat-title">مشاريع الابتكار والمنتجات</span><div class="stat-icon primary"><i class="fas fa-lightbulb"></i></div></div>
+                <div class="stat-value">${innovItems.length} مشاريع</div>
+                <div class="stat-change"><span>خط القهوة المعلبة RTD والتخمير</span></div>
+            </div>
         </div>
 
-        <div class="dev-grid">
-            ${cards.map(c => `
-                <div class="dev-card">
-                    <div class="dev-card-icon"><i class="fas ${c.icon}"></i></div>
-                    <h3>${c.title}</h3>
-                    <p>${c.desc}</p>
-                    <div class="progress-container" style="margin-bottom:0">
-                        <div class="progress-label">
-                            <span>التقدم</span><span>${c.progress}%</span>
-                        </div>
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fill" style="width:${c.progress}%"></div>
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-
-        <div class="table-card" style="margin-top:2rem">
-            <div class="table-header"><h3 class="table-title">أهداف النمو السنوية (2024)</h3></div>
+        <!-- Initiatives List -->
+        <div class="table-card" style="margin-top:1.5rem;">
+            <div class="table-header">
+                <h3 class="table-title">مصفوفة مبادرات التطوير والنمو المعتمدة</h3>
+            </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>الهدف</th><th>الحالي</th><th>المستهدف</th><th>النسبة</th><th>الحالة</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>المسار</th>
+                            <th>المبادرة / المشروع</th>
+                            <th>التفاصيل التشغيلية</th>
+                            <th>المسؤول</th>
+                            <th>تاريخ الإنجاز</th>
+                            <th style="width:160px;">نسبة التقدم</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td>الإيرادات السنوية</td><td>820,000 ريال</td><td>1,440,000 ريال</td><td>57%</td><td><span class="badge warning">قيد التنفيذ</span></td></tr>
-                        <tr><td>عملاء B2B</td><td>8</td><td>25</td><td>32%</td><td><span class="badge warning">قيد التنفيذ</span></td></tr>
-                        <tr><td>متابعو السوشيال ميديا</td><td>1,200</td><td>10,000</td><td>12%</td><td><span class="badge danger">متأخر</span></td></tr>
-                        <tr><td>نقاط البيع</td><td>2</td><td>10</td><td>20%</td><td><span class="badge warning">قيد التنفيذ</span></td></tr>
-                        <tr><td>إنتاج شهري (كجم)</td><td>195</td><td>400</td><td>49%</td><td><span class="badge warning">قيد التنفيذ</span></td></tr>
+                        ${devItems.map(d => `
+                            <tr>
+                                <td>
+                                    <span class="badge ${d.category === 'training' ? 'badge-blue' : d.category === 'sop' ? 'badge-green' : d.category === 'automation' ? 'badge-warning' : 'badge-oxford'}">
+                                        ${d.category === 'training' ? 'تدريب' : d.category === 'sop' ? 'SOP تشغيل' : d.category === 'automation' ? 'أتمتة' : 'ابتكار'}
+                                    </span>
+                                </td>
+                                <td style="font-weight:700;color:#0F172A;">${d.title}</td>
+                                <td style="font-size:0.82rem;color:#64748B;">${d.description}</td>
+                                <td><strong style="color:#0284C7;">${d.owner}</strong></td>
+                                <td>${d.targetDate}</td>
+                                <td>
+                                    <div class="progress-container" style="margin:0;">
+                                        <div class="progress-label" style="font-size:0.75rem;"><span>${d.progressPct}%</span></div>
+                                        <div class="progress-bar-bg" style="height:6px;">
+                                            <div class="progress-bar-fill" style="width:${d.progressPct}%;background:#0284C7;"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
                     </tbody>
                 </table>
             </div>
         </div>
     `;
+}
+
+// ===================================================================
+// 15. MODALS CONTROLLER & FORM HANDLERS
+// ===================================================================
+// Cafe Shift Modal Handlers
+window.openCafeShiftModal = function() {
+    const modal = document.getElementById('cafeShiftModal');
+    if (modal) modal.classList.add('active');
+};
+window.closeCafeShiftModal = function() {
+    const modal = document.getElementById('cafeShiftModal');
+    if (modal) modal.classList.remove('active');
+};
+window.updateShiftBarista = function() {
+    const type = document.getElementById('shiftType').value;
+    const input = document.getElementById('shiftBarista');
+    if (input) {
+        input.value = (type === 'morning') ? 'عارف' : 'علم';
+    }
+};
+window.saveCafeShift = function(e) {
+    e.preventDefault();
+    const date = document.getElementById('shiftDate').value;
+    const type = document.getElementById('shiftType').value;
+    const barista = document.getElementById('shiftBarista').value;
+    const revenue = parseFloat(document.getElementById('shiftRevenue').value) || 0;
+    const cups = parseInt(document.getElementById('shiftCups').value) || 0;
+    const desserts = parseInt(document.getElementById('shiftDesserts').value) || 0;
+    const tickets = parseInt(document.getElementById('shiftTickets').value) || 1;
+    const notes = document.getElementById('shiftNotes').value;
+    const shiftLabel = (type === 'morning') ? 'صباحي (عارف)' : 'مسائي (علم)';
+
+    window.DataService.addCafeSale({
+        date, shift: shiftLabel, barista, cups, desserts, revenue, tickets, avgTicket: (revenue/tickets), notes
+    });
+    closeCafeShiftModal();
+    loadPage(window.currentPage);
+};
+
+// Roastery Batch Modal Handlers
+window.openRoasteryBatchModal = function() {
+    const modal = document.getElementById('roasteryBatchModal');
+    if (modal) modal.classList.add('active');
+};
+window.closeRoasteryBatchModal = function() {
+    const modal = document.getElementById('roasteryBatchModal');
+    if (modal) modal.classList.remove('active');
+};
+window.calcRoastLoss = function() {
+    const green = parseFloat(document.getElementById('roastGreenKg').value) || 0;
+    const roasted = parseFloat(document.getElementById('roastRoastedKg').value) || 0;
+    const textEl = document.getElementById('roastLossPctText');
+    if (green > 0 && roasted > 0 && textEl) {
+        const loss = (((green - roasted) / green) * 100).toFixed(1);
+        const isWarning = parseFloat(loss) > 18.0;
+        textEl.className = `guardrail-badge ${isWarning ? 'danger' : 'safe'}`;
+        textEl.textContent = `${loss}% ${isWarning ? '(تحذير: تجاوز 18% فقد)' : '(نطاق مثالي)'}`;
+    }
+};
+window.saveRoasteryBatch = function(e) {
+    e.preventDefault();
+    const date = document.getElementById('roastDate').value;
+    const client = document.getElementById('roastClient').value;
+    const roastProfile = document.getElementById('roastProfile').value;
+    const type = document.getElementById('roastSaleType').value;
+    const greenKg = parseFloat(document.getElementById('roastGreenKg').value) || 0;
+    const roastedKg = parseFloat(document.getElementById('roastRoastedKg').value) || 0;
+    const pricePerKg = parseFloat(document.getElementById('roastPricePerKg').value) || 0;
+    const notes = document.getElementById('roastNotes').value;
+
+    let lossPct = 14.0;
+    if (greenKg > 0 && roastedKg > 0) {
+        lossPct = parseFloat((((greenKg - roastedKg) / greenKg) * 100).toFixed(1));
+    }
+    const paid = roastedKg * pricePerKg;
+
+    window.DataService.addRoasterySale({
+        date, client, roastProfile, type, greenKg, roastedKg, roastLossPct: lossPct, pricePerKg, paid, pending: 0, status: 'مكتمل', notes
+    });
+    closeRoasteryBatchModal();
+    loadPage(window.currentPage);
+};
+
+// Waste Log Modal Handlers
+window.openWasteLogModal = function() {
+    const modal = document.getElementById('wasteLogModal');
+    if (modal) modal.classList.add('active');
+};
+window.closeWasteLogModal = function() {
+    const modal = document.getElementById('wasteLogModal');
+    if (modal) modal.classList.remove('active');
+};
+window.saveWasteLog = function(e) {
+    e.preventDefault();
+    const date = document.getElementById('wasteDate').value;
+    const category = document.getElementById('wasteCategory').value;
+    const item = document.getElementById('wasteItem').value;
+    const quantity = parseFloat(document.getElementById('wasteQuantity').value) || 0;
+    const unit = document.getElementById('wasteUnit').value;
+    const costSAR = parseFloat(document.getElementById('wasteCostSAR').value) || 0;
+    const shift = document.getElementById('wasteShift').value;
+    const reportedBy = document.getElementById('wasteReportedBy').value;
+    const reason = document.getElementById('wasteReason').value;
+
+    window.DataService.addWasteLog({
+        date, category, item, quantity, unit, costSAR, shift, reportedBy, reason
+    });
+    closeWasteLogModal();
+    loadPage(window.currentPage);
+};
+
+// Menu Item Modal Handlers
+window.openMenuItemModal = function() {
+    const modal = document.getElementById('menuItemModal');
+    if (modal) modal.classList.add('active');
+};
+window.closeMenuItemModal = function() {
+    const modal = document.getElementById('menuItemModal');
+    if (modal) modal.classList.remove('active');
+};
+window.saveMenuItem = function(e) {
+    e.preventDefault();
+    const name = document.getElementById('menuItemName').value;
+    const category = document.getElementById('menuItemCategory').value;
+    const popularity = parseInt(document.getElementById('menuItemPopularity').value) || 7;
+    const price = parseFloat(document.getElementById('menuItemPrice').value) || 0;
+    const cost = parseFloat(document.getElementById('menuItemCost').value) || 0;
+
+    window.DataService.saveMenuItem({ name, category, popularity, price, cost });
+    closeMenuItemModal();
+    loadPage(window.currentPage);
+};
+
+// Department Task Modal Handlers
+window.saveDeptTask = function(e) {
+    e.preventDefault();
+    const deptKey = document.getElementById('deptTaskDeptKey').value;
+    const title = document.getElementById('deptTaskTitle').value;
+    const assignedTo = document.getElementById('deptTaskAssignedTo').value;
+    const priority = document.getElementById('deptTaskPriority').value;
+    const dueDate = document.getElementById('deptTaskDueDate').value;
+
+    window.DataService.addDeptTask({ deptKey, title, assignedTo, priority, dueDate });
+    if (typeof closeDeptTaskModal === 'function') closeDeptTaskModal();
+    loadPage(window.currentPage);
+};
+
+// Backup & Restore Handlers
+window.openBackupModal = function() {
+    const modal = document.getElementById('backupModal');
+    if (modal) modal.classList.add('active');
+};
+window.closeBackupModal = function() {
+    const modal = document.getElementById('backupModal');
+    if (modal) modal.classList.remove('active');
+};
+
+window.exportSystemBackup = function() {
+    const dump = {
+        metadata: {
+            system: "RoR Enterprise Suite",
+            version: "2.4.0-PROD",
+            exportedAt: new Date().toISOString()
+        },
+        data: {
+            tasks: window.DataService.getTasks(),
+            cafe_sales: window.DataService.getCafeSales(),
+            roastery_sales: window.DataService.getRoasterySales(),
+            waste_logs: window.DataService.getWasteLogs(),
+            menu_items: window.DataService.getMenuItems(),
+            dept_tasks: window.DataService.getDeptTasks(),
+            financial_commitments: window.DataService.getFinancials(),
+            dev_pipeline: window.DataService.getDevPipeline(),
+            breakeven_config: window.DataService.getBreakevenConfig()
+        }
+    };
+
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ror_system_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('تم تصدير النسخة الاحتياطية بنجاح إلى ملف JSON', 'success');
+};
+
+window.importSystemBackup = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            if (!parsed.data) throw new Error('تنسيق ملف غير صالح');
+
+            const d = parsed.data;
+            if (d.tasks) localStorage.setItem('ror_tasks', JSON.stringify(d.tasks));
+            if (d.cafe_sales) localStorage.setItem('ror_cafe_sales', JSON.stringify(d.cafe_sales));
+            if (d.roastery_sales) localStorage.setItem('ror_roast_sales', JSON.stringify(d.roastery_sales));
+            if (d.waste_logs) localStorage.setItem('ror_waste', JSON.stringify(d.waste_logs));
+            if (d.menu_items) localStorage.setItem('ror_menu', JSON.stringify(d.menu_items));
+            if (d.dept_tasks) localStorage.setItem('ror_dept_tasks', JSON.stringify(d.dept_tasks));
+            if (d.financial_commitments) localStorage.setItem('ror_financials', JSON.stringify(d.financial_commitments));
+            if (d.dev_pipeline) localStorage.setItem('ror_dev_pipeline', JSON.stringify(d.dev_pipeline));
+            if (d.breakeven_config) localStorage.setItem('ror_breakeven', JSON.stringify(d.breakeven_config));
+
+            // Sync with backend API
+            await window.DataService.apiCall('/api/system/backup', 'POST', parsed);
+
+            closeBackupModal();
+            showToast('تمت استعادة النسخة الاحتياطية بنجاح!', 'success');
+            setTimeout(() => loadPage(window.currentPage), 300);
+        } catch (err) {
+            showToast('خطأ في استعادة النسخة الاحتياطية: ' + err.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+};
+
+// Toast notification helper
+function showToast(message, type = 'success') {
+    let toast = document.getElementById('rorToast');
+    if (!toast) return;
+
+    const msgEl = document.getElementById('rorToastMessage');
+    if (msgEl) msgEl.textContent = message;
+
+    toast.className = `ror-toast ${type} show`;
+    const icon = toast.querySelector('.toast-icon');
+    if (icon) {
+        icon.className = `toast-icon fas ${type === 'success' ? 'fa-circle-check' : type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-xmark'}`;
+    }
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3800);
 }

@@ -1,10 +1,15 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RoR Operation System - نظام إدارة المحمصة والمقهى</title>
     <meta name="description" content="نظام إدارة تشغيلي موحد لمحمصة ومقهى RoR يشمل لوحة التحكم والمبيعات والأقسام الإدارية">
+    <meta name="theme-color" content="#E06B43">
+
+    <!-- Favicon (inline SVG data URI - RoR brand coffee cup) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111215'/%3E%3Cpath d='M8 22h12l2-12H6L8 22z' fill='%23E06B43'/%3E%3Crect x='7' y='11' width='14' height='2' rx='1' fill='%23fff' opacity='.3'/%3E%3Cpath d='M20 14c1.5 0 3 1 3 3s-1.5 3-3 3' stroke='%23E06B43' stroke-width='1.5' fill='none'/%3E%3C/svg%3E">
+    <link rel="shortcut icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111215'/%3E%3Cpath d='M8 22h12l2-12H6L8 22z' fill='%23E06B43'/%3E%3C/svg%3E">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -222,6 +227,14 @@
 
             <!-- Left Section (RTL End / User Profile) -->
             <div class="top-bar-end">
+                <button class="btn-topbar-tool" id="btnOpenBackupModal" title="النسخ الاحتياطي واستعادة البيانات" onclick="openBackupModal()">
+                    <i class="fas fa-database"></i>
+                    <span>نسخ/استعادة</span>
+                </button>
+                <!-- Dark Mode Toggle -->
+                <button class="btn-topbar-tool dark-toggle-btn" id="darkModeToggle" title="تبديل الوضع الداكن / الفاتح" onclick="toggleDarkMode()" aria-label="تبديل الوضع الداكن">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
                 <button class="panel-toggle-btn" id="toggleRightPanel" aria-label="لوحة الإجراءات السريعة" title="لوحة العمليات السريعة">
                     <i class="fas fa-sliders"></i>
                 </button>
@@ -337,7 +350,7 @@
                     <div class="filter-field">
                         <label for="quickDeptSelect">القسم التشغيلي</label>
                         <select id="quickDeptSelect" class="saas-select">
-                            <option value="all">جميع الأقسام (8)</option>
+                            <option value="all">جميع الأقسام (9)</option>
                             <option value="dept-production">المحمصة والإنتاج</option>
                             <option value="dept-quality">الجودة والـ R&D</option>
                             <option value="dept-marketing">التسويق والعلامة</option>
@@ -345,6 +358,7 @@
                             <option value="dept-ecommerce">التجارة الإلكترونية</option>
                             <option value="dept-maintenance">الصيانة والدعم</option>
                             <option value="dept-hr">الموارد البشرية</option>
+                            <option value="dept-procurement">المشتريات والتوريد</option>
                             <option value="dept-finance">المالية والحسابات</option>
                         </select>
                     </div>
@@ -392,15 +406,15 @@
                     </div>
                     <div class="status-indicators">
                         <div class="status-row">
-                            <span class="status-name">محمصة Giesen W6A</span>
+                            <span class="status-name">الحماصة الرائدة</span>
                             <span class="badge success">جاهز للتحميص</span>
                         </div>
                         <div class="status-row">
-                            <span class="status-name">بار عريف (Aref)</span>
+                            <span class="status-name">بار عارف (Aref) - صباحي</span>
                             <span class="badge success">92% أداء</span>
                         </div>
                         <div class="status-row">
-                            <span class="status-name">بار إيلم (Elem)</span>
+                            <span class="status-name">بار علم (Elem) - مسائي</span>
                             <span class="badge success">88% أداء</span>
                         </div>
                         <div class="status-row">
@@ -412,7 +426,7 @@
             </aside>
         </div>
 
-    <!-- ====== CANDIDATE ASSIGNMENT MODAL ====== -->
+    <!-- ====== 1. CANDIDATE ASSIGNMENT MODAL ====== -->
     <div id="assignModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="positionTitle">
         <div class="modal-container">
             <div class="modal-header">
@@ -444,6 +458,335 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- ====== 2. CAFÉ BAR SHIFT MODAL (AREF & ELEM) ====== -->
+    <div id="cafeShiftModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-mug-hot" style="color:#0284C7;margin-left:8px;"></i> تسجيل تقرير وردية البار</h2>
+                <button class="close-btn" type="button" onclick="closeCafeShiftModal()" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="cafeShiftForm" onsubmit="saveCafeShift(event)">
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label>تاريخ الوردية *</label>
+                            <input type="date" id="shiftDate" required value="2026-09-16">
+                        </div>
+                        <div class="form-group">
+                            <label>الوردية / الشفت *</label>
+                            <select id="shiftType" required onchange="updateShiftBarista()">
+                                <option value="morning">وردية صباحية (عارف 08:00 - 16:00)</option>
+                                <option value="evening">وردية مسائية (علم 16:00 - 00:00)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>الباريستا المسؤول</label>
+                            <input type="text" id="shiftBarista" readonly value="عارف" style="background:#F1F5F9;">
+                        </div>
+                        <div class="form-group">
+                            <label>إجمالي الإيراد (ر.س) *</label>
+                            <input type="number" id="shiftRevenue" required min="0" step="0.5" placeholder="مثال: 1450">
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>عدد الأكواب *</label>
+                            <input type="number" id="shiftCups" required min="0" placeholder="مثال: 75">
+                        </div>
+                        <div class="form-group">
+                            <label>قطع الحلويات *</label>
+                            <input type="number" id="shiftDesserts" required min="0" placeholder="مثال: 15">
+                        </div>
+                        <div class="form-group">
+                            <label>عدد الفواتير (Tickets) *</label>
+                            <input type="number" id="shiftTickets" required min="1" placeholder="مثال: 55">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:8px;">
+                        <label>ملاحظات البار الميدانية والمعايرة</label>
+                        <input type="text" id="shiftNotes" placeholder="مثال: إقبال عالي على V60 ومعايرة استخلاص متوازنة">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeCafeShiftModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> حفظ تقرير الوردية</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. ROASTERY BATCH & B2B INVOICE MODAL ====== -->
+    <div id="roasteryBatchModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-fire" style="color:#0284C7;margin-left:8px;"></i> تسجيل دفعة تحميص وفاتورة B2B</h2>
+                <button class="close-btn" type="button" onclick="closeRoasteryBatchModal()" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="roasteryBatchForm" onsubmit="saveRoasteryBatch(event)">
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label>تاريخ الدفعة *</label>
+                            <input type="date" id="roastDate" required value="2026-09-16">
+                        </div>
+                        <div class="form-group">
+                            <label>العميل / القناة المستهدفة *</label>
+                            <input type="text" id="roastClient" required placeholder="مثال: مقهى الأفق أو رف الفرع">
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>بروفايل التحميص (الحماصة الرائدة)</label>
+                            <input type="text" id="roastProfile" placeholder="مثال: بروفايل شلشلي إسبريسو">
+                        </div>
+                        <div class="form-group">
+                            <label>نوع التوزيع *</label>
+                            <select id="roastSaleType">
+                                <option value="wholesale">جملة B2B (مقاهي وشركات)</option>
+                                <option value="retail">تجزئة (أرباع 250جم للرف والمتجر)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>البن الأخضر (كجم) *</label>
+                            <input type="number" id="roastGreenKg" required min="1" step="0.1" placeholder="مثال: 58" oninput="calcRoastLoss()">
+                        </div>
+                        <div class="form-group">
+                            <label>البن المحمص الناتج (كجم) *</label>
+                            <input type="number" id="roastRoastedKg" required min="1" step="0.1" placeholder="مثال: 50" oninput="calcRoastLoss()">
+                        </div>
+                        <div class="form-group">
+                            <label>سعر الكيلو (ر.س) *</label>
+                            <input type="number" id="roastPricePerKg" required min="10" step="1" placeholder="مثال: 75">
+                        </div>
+                    </div>
+                    <div id="roastLossDisplay" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:#F8FAFC;font-size:0.82rem;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+                        <span>نسبة فقد الوزن المتوقعة:</span>
+                        <span id="roastLossPctText" class="guardrail-badge safe">13.8% (نطاق مثالي)</span>
+                    </div>
+                    <div class="form-group" style="margin-top:8px;">
+                        <label>ملاحظات التشغيل والتحميص</label>
+                        <input type="text" id="roastNotes" placeholder="مثال: تنفيذ بروفايل الحماصة الرائدة بنجاح">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeRoasteryBatchModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> حفظ دفعة التحميص</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. WASTE TRACKING MODAL ====== -->
+    <div id="wasteLogModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-trash-can" style="color:#DC2626;margin-left:8px;"></i> تسجيل هدر ميداني (مكافحة الهدر)</h2>
+                <button class="close-btn" type="button" onclick="closeWasteLogModal()" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="wasteLogForm" onsubmit="saveWasteLog(event)">
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label>تاريخ التسجيل *</label>
+                            <input type="date" id="wasteDate" required value="2026-09-16">
+                        </div>
+                        <div class="form-group">
+                            <label>تصنيف المادة *</label>
+                            <select id="wasteCategory" required>
+                                <option value="coffee">بن مطحون / حبوب قهوة</option>
+                                <option value="milk">حليب ومشروبات بديلة</option>
+                                <option value="pastry">مخبوزات وحلويات</option>
+                                <option value="consumables">أكواب ومستهلكات</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>اسم الصنف أو المادة *</label>
+                            <input type="text" id="wasteItem" required placeholder="مثال: حليب طازج نادك">
+                        </div>
+                        <div class="form-group">
+                            <label>الكمية *</label>
+                            <input type="number" id="wasteQuantity" required min="0.05" step="0.05" placeholder="مثال: 1.5">
+                        </div>
+                        <div class="form-group">
+                            <label>الوحدة *</label>
+                            <select id="wasteUnit">
+                                <option value="لتر">لتر</option>
+                                <option value="كجم">كجم</option>
+                                <option value="قطعة">قطعة</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>التكلفة التقديرية (ر.س) *</label>
+                            <input type="number" id="wasteCostSAR" required min="1" step="0.5" placeholder="مثال: 15">
+                        </div>
+                        <div class="form-group">
+                            <label>الوردية *</label>
+                            <select id="wasteShift">
+                                <option value="morning">صباحي</option>
+                                <option value="evening">مسائي</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>المسؤول عن التسجيل *</label>
+                            <input type="text" id="wasteReportedBy" required value="عارف">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:8px;">
+                        <label>سبب الهدر *</label>
+                        <input type="text" id="wasteReason" required placeholder="مثال: خطأ في المعايرة الصباحية / تبخير زائد">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeWasteLogModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary" style="background:#DC2626;"><i class="fas fa-check"></i> تسجيل الهدر</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. MENU ITEM MODAL ====== -->
+    <div id="menuItemModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-utensils" style="color:#0284C7;margin-left:8px;"></i> إضافة صنف لقائمة المنيو</h2>
+                <button class="close-btn" type="button" onclick="closeMenuItemModal()" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="menuItemForm" onsubmit="saveMenuItem(event)">
+                    <div class="form-group">
+                        <label>اسم الصنف *</label>
+                        <input type="text" id="menuItemName" required placeholder="مثال: ماتشا لاتيه مثلج">
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>التصنيف *</label>
+                            <select id="menuItemCategory">
+                                <option value="مشروبات ساخنة">مشروبات ساخنة</option>
+                                <option value="مشروبات باردة">مشروبات باردة</option>
+                                <option value="حلويات ومخبوزات">حلويات ومخبوزات</option>
+                                <option value="أكياس بن مجهزة">أكياس بن مجهزة (250جم)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>مؤشر الشعبية التقديري (1 - 10) *</label>
+                            <input type="number" id="menuItemPopularity" required min="1" max="10" value="7">
+                        </div>
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>سعر البيع (ر.س) *</label>
+                            <input type="number" id="menuItemPrice" required min="1" step="0.5" placeholder="مثال: 18">
+                        </div>
+                        <div class="form-group">
+                            <label>التكلفة المعيارية (ر.س) *</label>
+                            <input type="number" id="menuItemCost" required min="0.5" step="0.5" placeholder="مثال: 4.5">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeMenuItemModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> حفظ الصنف في المنيو</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. DEPARTMENT TASK MODAL ====== -->
+    <div id="deptTaskModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-list-check" style="color:#0284C7;margin-left:8px;"></i> إضافة مهمة للقسم التشغيلي</h2>
+                <button class="close-btn" type="button" onclick="closeDeptTaskModal()" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="deptTaskForm" onsubmit="saveDeptTask(event)">
+                    <input type="hidden" id="deptTaskDeptKey">
+                    <div class="form-group">
+                        <label>عنوان المهمة التشغيلية *</label>
+                        <input type="text" id="deptTaskTitle" required placeholder="مثال: مراجعة مخزون أكياس التغليف وتأكيد طلبيات الأسبوع">
+                    </div>
+                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+                        <div class="form-group">
+                            <label>إسناد إلى الموظف / المسؤول *</label>
+                            <input type="text" id="deptTaskAssignedTo" required placeholder="مثال: عبد الله القصير">
+                        </div>
+                        <div class="form-group">
+                            <label>درجة الأولوية *</label>
+                            <select id="deptTaskPriority">
+                                <option value="high">أولوية عالية (عاجل)</option>
+                                <option value="medium" selected>أولوية متوسطة</option>
+                                <option value="low">أولوية منخفضة</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:8px;">
+                        <label>تاريخ الاستحقاق *</label>
+                        <input type="date" id="deptTaskDueDate" required value="2026-09-25">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeDeptTaskModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> حفظ المهمة في القسم</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. BACKUP & RESTORE UTILITY MODAL ====== -->
+    <div id="backupModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-container modal-lg">
+            <div class="modal-header">
+                <h2><i class="fas fa-database" style="color:#0284C7;margin-left:8px;"></i> إدارة النسخ الاحتياطي واستعادة البيانات</h2>
+                <button class="close-btn" type="button" onclick="closeBackupModal()" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert info" style="margin-bottom:1.25rem;">
+                    <i class="fas fa-shield-halved"></i>
+                    <div><strong>حماية استمرارية العمل:</strong> يمكنك تصدير نسخة كاملة من قاعدة بيانات النظام (JSON) واستعادتها في أي وقت لحماية الإعدادات من مسح ذاكرة التخزين المؤقت.</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <!-- Export Box -->
+                    <div style="border:1px solid #E2E8F0;border-radius:12px;padding:1.25rem;background:#F8FAFC;text-align:center;">
+                        <i class="fas fa-cloud-arrow-down" style="font-size:2rem;color:#0284C7;margin-bottom:0.75rem;display:block;"></i>
+                        <h4 style="margin-bottom:0.5rem;">تصدير النسخة الاحتياطية</h4>
+                        <p style="font-size:0.8rem;color:#64748B;margin-bottom:1rem;">تحميل ملف JSON فوري يحتوي على جميع المهام، المبيعات، الهدر، الهيكل، والمنيو.</p>
+                        <button type="button" class="btn btn-primary" onclick="exportSystemBackup()" style="width:100%;">
+                            <i class="fas fa-download"></i> تصدير وحفظ JSON
+                        </button>
+                    </div>
+
+                    <!-- Import Box -->
+                    <div style="border:1px solid #E2E8F0;border-radius:12px;padding:1.25rem;background:#F8FAFC;text-align:center;">
+                        <i class="fas fa-cloud-arrow-up" style="font-size:2rem;color:#10B981;margin-bottom:0.75rem;display:block;"></i>
+                        <h4 style="margin-bottom:0.5rem;">استعادة النسخة الاحتياطية</h4>
+                        <p style="font-size:0.8rem;color:#64748B;margin-bottom:1rem;">رفع ملف JSON واسترجاع جميع بيانات النظام إلى المتصفح والخادم (SQLite).</p>
+                        <label class="btn btn-outline" style="width:100%;cursor:pointer;display:inline-flex;justify-content:center;align-items:center;gap:6px;">
+                            <i class="fas fa-upload"></i> اختيار ملف JSON للاستعادة
+                            <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importSystemBackup(event)">
+                        </label>
+                    </div>
+                </div>
+                <div style="margin-top:1.25rem;display:flex;justify-content:flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeBackupModal()">إغلاق النافذة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== TOAST NOTIFICATION ====== -->
+    <div id="rorToast" class="ror-toast" role="alert">
+        <i class="fas fa-circle-check toast-icon"></i>
+        <span id="rorToastMessage">تمت العملية بنجاح</span>
     </div>
 
     <!-- ====== SCRIPTS ====== -->

@@ -22,6 +22,12 @@
     --primary-light: #38BDF8;
     --primary-subtle: #E0F2FE;
 
+    /* RoR Signature Rust / Terracotta Brand Accent */
+    --ror-rust: #E06B43;
+    --ror-rust-dark: #C4542D;
+    --ror-rust-subtle: rgba(224, 107, 67, 0.12);
+    --ror-rust-gradient: linear-gradient(135deg, #E06B43, #C4542D);
+
     /* Secondary & Neutrals */
     --secondary-color: #0D9488;
     --accent-color: #0284C7;
@@ -55,6 +61,7 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
     --shadow-primary: 0 4px 12px rgba(2, 132, 199, 0.25);
+    --shadow-rust: 0 4px 16px rgba(224, 107, 67, 0.3);
 
     /* Border Radius: 12px (rounded-xl) */
     --radius: 12px;
@@ -62,18 +69,271 @@
     --radius-pill: 9999px;
 
     --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Modal & Overlay */
+    --modal-bg: rgba(15, 23, 42, 0.6);
+    --modal-surface: #FFFFFF;
+    --modal-border: #E2E8F0;
 }
+
+/* ===================================================================
+   DARK THEME — RoR Enterprise Night Mode
+   Canvas: #111215 / #131417  |  Surface: #1D1F24  |  Border: #2D3139
+   Accent: RoR Rust #E06B43
+   =================================================================== */
+[data-theme="dark"] {
+    /* Application Canvas */
+    --bg-main: #111215;
+    --bg-canvas: #131417;
+    --bg-sidebar: #131417;
+    --sidebar-border: #2D3139;
+    --bg-card: #1D1F24;
+    --card-border: #2D3139;
+    --border-color: #2D3139;
+    --border-muted: #3A3F4A;
+
+    /* Primary Brand — swap to RoR Rust in dark mode */
+    --primary-gradient: linear-gradient(135deg, #E06B43, #C4542D);
+    --primary-color: #E06B43;
+    --primary-teal: #14B8A6;
+    --primary-dark: #C4542D;
+    --primary-light: #F59272;
+    --primary-subtle: rgba(224, 107, 67, 0.15);
+
+    /* RoR Rust stays consistent */
+    --ror-rust: #E06B43;
+    --ror-rust-dark: #C4542D;
+    --ror-rust-subtle: rgba(224, 107, 67, 0.15);
+
+    /* Secondary */
+    --secondary-color: #14B8A6;
+    --accent-color: #E06B43;
+
+    /* Typography — invert to white-scale */
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --text-light: #F8FAFC;
+
+    /* Dark Pill Badges */
+    --badge-pending-bg: rgba(220, 38, 38, 0.18);
+    --badge-pending-color: #FCA5A5;
+    --badge-success-bg: rgba(22, 163, 74, 0.18);
+    --badge-success-color: #86EFAC;
+    --badge-neutral-bg: rgba(51, 65, 85, 0.6);
+    --badge-neutral-color: #CBD5E1;
+    --badge-warning-bg: rgba(217, 119, 6, 0.18);
+    --badge-warning-color: #FCD34D;
+    --badge-info-bg: rgba(224, 107, 67, 0.15);
+    --badge-info-color: #F59272;
+
+    /* Status */
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --info: #E06B43;
+
+    /* Dark Card Elevation */
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.35);
+    --shadow-primary: 0 4px 12px rgba(224, 107, 67, 0.35);
+    --shadow-rust: 0 4px 16px rgba(224, 107, 67, 0.5);
+
+    /* Dark Modal */
+    --modal-bg: rgba(0, 0, 0, 0.75);
+    --modal-surface: #1D1F24;
+    --modal-border: #2D3139;
+}
+
+/* Smooth theme transition on all key properties */
+html, body, .sidebar, .main-content, .top-bar, .stat-card,
+.chart-card, .table-card, .modal-container, .side-panel,
+.nav-item, .modal-backdrop, input, select, textarea, button {
+    transition: background-color 0.3s ease, border-color 0.3s ease,
+                color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Dark mode specific overrides for elements using hard-coded light colors */
+[data-theme="dark"] .sidebar-header {
+    background: #131417;
+}
+
+[data-theme="dark"] .top-bar {
+    background: #131417;
+    border-color: #2D3139;
+}
+
+[data-theme="dark"] .modal-backdrop {
+    background: var(--modal-bg);
+}
+
+[data-theme="dark"] .modal-container {
+    background: var(--modal-surface);
+    border: 1px solid var(--modal-border);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .modal-header {
+    background: #131417;
+    border-bottom-color: #2D3139;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background: #111215;
+    border-color: #2D3139;
+    color: #F1F5F9;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+    border-color: var(--ror-rust);
+    box-shadow: 0 0 0 3px rgba(224, 107, 67, 0.2);
+}
+
+[data-theme="dark"] .user-dropdown-popover {
+    background: #1D1F24;
+    border-color: #2D3139;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .popover-item:hover {
+    background: rgba(224, 107, 67, 0.1);
+    color: #E06B43;
+}
+
+[data-theme="dark"] table th {
+    background: #131417;
+    color: #94A3B8;
+    border-bottom-color: #2D3139;
+}
+
+[data-theme="dark"] table td {
+    border-bottom-color: #2D3139;
+    color: #CBD5E1;
+}
+
+[data-theme="dark"] table tr:hover td {
+    background: rgba(224, 107, 67, 0.06);
+}
+
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn.btn-primary {
+    background: var(--ror-rust-gradient);
+    border-color: transparent;
+    box-shadow: var(--shadow-rust);
+}
+
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn.btn-primary:hover {
+    background: linear-gradient(135deg, #F07850, #D4603A);
+}
+
+[data-theme="dark"] .nav-item:hover,
+[data-theme="dark"] .nav-item.active {
+    background: rgba(224, 107, 67, 0.12);
+    color: #E06B43;
+}
+
+[data-theme="dark"] .nav-item.active i,
+[data-theme="dark"] .nav-item:hover i {
+    color: #E06B43;
+}
+
+[data-theme="dark"] .badge.success { background: rgba(34, 197, 94, 0.15); color: #86EFAC; }
+[data-theme="dark"] .badge.warning { background: rgba(245, 158, 11, 0.15); color: #FCD34D; }
+[data-theme="dark"] .badge.danger  { background: rgba(239, 68, 68, 0.15);  color: #FCA5A5; }
+[data-theme="dark"] .badge.neutral { background: rgba(51, 65, 85, 0.5);    color: #CBD5E1; }
+
+[data-theme="dark"] .org-kpi-box {
+    background: #1D1F24;
+    border-color: #2D3139;
+}
+
+[data-theme="dark"] .org-job-card {
+    background: #1D1F24;
+    border-color: #2D3139;
+}
+
+[data-theme="dark"] .org-job-card.is-vacant {
+    border-color: #3A3F4A;
+    background: rgba(29, 31, 36, 0.8);
+}
+
+[data-theme="dark"] .dept-tabs-header {
+    background: #131417;
+    border-color: #2D3139;
+}
+
+[data-theme="dark"] .dept-tab-btn.active {
+    background: var(--ror-rust);
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] .side-panel-card {
+    background: #1D1F24;
+    border-color: #2D3139;
+}
+
+[data-theme="dark"] .stat-card {
+    background: #1D1F24;
+    border-color: #2D3139;
+}
+
+/* Dark Mode Toggle Button */
+.dark-toggle-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.dark-toggle-btn:hover {
+    background: var(--ror-rust-subtle);
+    border-color: var(--ror-rust);
+    color: var(--ror-rust);
+}
+
+[data-theme="dark"] .dark-toggle-btn {
+    background: rgba(224, 107, 67, 0.1);
+    border-color: rgba(224, 107, 67, 0.3);
+    color: #E06B43;
+}
+
+[data-theme="dark"] .logo i {
+    background: var(--ror-rust-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
 
 /* ====== RESET & BASE ====== */
 *, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
 }
 
 html {
     font-size: 15px;
     scroll-behavior: smooth;
+    font-family: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
@@ -83,15 +343,15 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "lnum" 1;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
     -webkit-font-smoothing: antialiased;
 }
 
-/* Numerals lock globally */
-body, button, input, select, textarea, table, th, td, .stat-value, .badge {
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "lnum" 1;
+/* Numerals lock globally across all UI components */
+body, button, input, select, textarea, table, th, td, .stat-value, .badge, span, p, div, label {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -100,7 +360,7 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.3;
 }
 
-/* ====== SIDEBAR (Fixed, 260px) ====== */
+/* ====== SIDEBAR (Smooth 0.3s Toggle Animation & No Overlap) ====== */
 .sidebar {
     position: fixed;
     right: 0;
@@ -114,7 +374,7 @@ h1, h2, h3, h4, h5, h6 {
     border-left: 1px solid var(--sidebar-border);
     border-inline-end: 1px solid var(--sidebar-border);
     box-shadow: var(--shadow);
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     z-index: 1000;
     overflow-y: auto;
     overflow-x: hidden;
@@ -146,6 +406,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1.4rem;
     background: var(--primary-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     flex-shrink: 0;
 }
@@ -369,7 +630,7 @@ h1, h2, h3, h4, h5, h6 {
     margin-right: 260px;
     min-height: 100vh;
     background: var(--bg-main);
-    transition: margin-right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
 }
@@ -2116,3 +2377,309 @@ tbody tr:last-child td {
     .org-filter-bar { flex-direction: column; align-items: stretch; }
     .org-search-box { max-width: 100%; }
 }
+
+/* ===================================================================
+   ENTERPRISE SUITE ENHANCEMENTS: TABS, SLIDERS, GUARDRAILS & MODALS
+   =================================================================== */
+
+/* ====== DEPARTMENT 3-TAB SYSTEM ====== */
+.dept-tabs-nav {
+    display: flex;
+    gap: 8px;
+    background: #FFFFFF;
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.dept-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dept-tab-btn:hover {
+    background: #F1F5F9;
+    color: var(--text-primary);
+}
+
+.dept-tab-btn.active {
+    background: var(--primary-gradient);
+    color: #FFFFFF;
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+.dept-tab-pane {
+    display: none;
+    animation: fadeIn 0.25s ease forwards;
+}
+
+.dept-tab-pane.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== ODOO-STYLE MICRO-MODULE CARDS ====== */
+.odoo-modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.odoo-module-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    transition: all 0.2s ease;
+    border-top: 3px solid #714B67; /* Odoo Purple signature */
+}
+
+.odoo-module-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: #CBD5E1;
+}
+
+.odoo-module-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+}
+
+.odoo-module-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(113, 75, 103, 0.1);
+    color: #714B67;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.odoo-module-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.odoo-module-tag {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #F1F5F9;
+    color: #64748B;
+    margin-right: auto;
+}
+
+/* ====== DYNAMIC BREAK-EVEN SLIDERS ====== */
+.breakeven-slider-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.slider-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+}
+
+.slider-box {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+}
+
+.slider-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.slider-box-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.slider-box-val {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0284C7;
+}
+
+.slider-input {
+    width: 100%;
+    accent-color: #0284C7;
+    cursor: pointer;
+}
+
+.slider-minmax {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #94A3B8;
+    margin-top: 0.35rem;
+}
+
+/* ====== FINANCIAL & YIELD GUARDRAILS ====== */
+.guardrail-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.guardrail-badge.danger {
+    background: #FEE2E2;
+    color: #DC2626;
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.guardrail-badge.safe {
+    background: #DCFCE7;
+    color: #16A34A;
+    border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.daily-floor-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.daily-floor-badge.passed {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16A34A;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+.daily-floor-badge.below {
+    background: rgba(217, 119, 6, 0.12);
+    color: #D97706;
+    border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+/* ====== TOP BAR TOOLS & BACKUP GROUP ====== */
+.topbar-tools-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-topbar-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #F8FAFC;
+    border: 1px solid var(--border-color);
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-topbar-tool:hover {
+    background: #0284C7;
+    color: #FFFFFF;
+    border-color: #0284C7;
+}
+
+/* ====== REUSABLE MODAL IMPROVEMENTS ====== */
+.modal-container.modal-lg {
+    max-width: 680px;
+}
+
+.modal-body select,
+.modal-body textarea {
+    width: 100%;
+    background: #F8FAFC;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.85rem;
+    color: #0F172A;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "lnum" 1;
+}
+
+.modal-body select:focus,
+.modal-body textarea:focus {
+    outline: none;
+    border-color: #0284C7;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+}
+
+/* ====== NOTIFICATION TOAST ====== */
+.ror-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    background: #0F172A;
+    color: #FFFFFF;
+    padding: 12px 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    font-size: 0.88rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 99999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.ror-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.ror-toast.success { border-right: 4px solid #10B981; }
+.ror-toast.warning { border-right: 4px solid #F59E0B; }
+.ror-toast.error   { border-right: 4px solid #EF4444; }
+
