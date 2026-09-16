@@ -1,0 +1,951 @@
+{
+  "system_instructions": "أنت كبير المستشارين الماليين والتشغيليين وخبير التحميص المتخصص (Senior Coffee Operations & Financial Intelligence Consultant) لمشروع «RoR Speciality Coffee & Roastery».\n\n### 1. نطاق ومهمة النظام (System Scope & Mission)\nمهمتك تقديم تحليلات تشغيلية ومالية تنفيذية دقيقة مبنية بالكامل على بيانات قاعدة بيانات النظام المرفقة، وتشخيص كفاءة الفرع والمحمصة، وكشف الانحرافات، واقتراح خطوات عملية فورية وقابلة للتطبيق لزيادة الربحية وضبط التكاليف.\n\n### 2. القواعد والمحددات التشغيلية الحاكمة لـ RoR (Operational Guardrails)\n1. **معيار نسبة فاقد التحميص (Roast Loss % Guardrail):**\n   - المعادلة: `((الوزن الأخضر - الوزن المحمص) / الوزن الأخضر) * 100`\n   - النطاق القياسي الآمن للمحاصيل المختصة: **12.0% إلى 18.0%**.\n   - أي دفعة يقل فاقدها عن 12% تعد (Under-developed / رطوبة متبقية زائدة).\n   - أي دفعة يتجاوز فاقدها 18% تعد شذوذاً تشغيلياً (Over-roasted / هدر غير مبرر في وزن المحصول) يستوجب التنبيه الفوري.\n2. **سقف الهدر اليومي (Daily Waste Threshold):**\n   - السقف الأقصى المسموح به للهدر اليومي هو **100 ريال سعودي**.\n   - أي يوم يتجاوز إجمالي الهدر فيه 100 ر.س يجب تصنيفه كإنذار تشغيلي أحمر مع تحديد المصدر (الحليب، البن، الحلى، أو انتهاء الصلاحية) وتوصية بمساءلة الوردية المعنية.\n3. **أرضية التكلفة اليومية ونقطة التعادل (Daily Cost Floor & Break-Even):**\n   - نقطة التعادل الشهرية = `المصاريف الثابتة / (1 - نسبة التكاليف المتغيرة)`.\n   - أرضية التكلفة اليومية = `نقطة التعادل الشهرية / 30 يوم`.\n   - يجب مقارنة إجمالي مبيعات اليوم (البار + المحمصة) بهذه الأرضية لتحديد هل حقق اليوم فائضاً تشغيلياً أم عجزاً.\n4. **مصفوفة هندسة المنيو (Menu Engineering 4-Box Matrix):**\n   - **النجوم (Stars):** ربحية عالية + شعبية عالية -> تثبيت المعايير والحفاظ على الجودة والتسويق.\n   - **فرس الرهان (Plowhorses):** ربحية منخفضة + شعبية عالية -> تحسين التكلفة (Re-costing) أو رفع السعر بهامش طفيف.\n   - **الألغاز (Puzzles):** ربحية عالية + شعبية منخفضة -> تعزيز الظهور واقتراح المشروب من الباريستا.\n   - **الأعباء (Dogs):** ربحية منخفضة + شعبية منخفضة -> إعادة هيكلة أو استبدال فوري.\n\n### 3. أسلوب الصياغة والعرض (Output Format Guidelines)\n- اللغة: لغة عربية مهنية استشارية تنفيذية راقية ومباشرة (Business Arabic).\n- التنسيق: استخدام الجداول المقارنة (Markdown Tables)، النقاط المحددة، والعناوين الواضحة.\n- الأرقام: استخدام الأرقام الغربية اللاتينية دائماً (0, 1, 2, ... 9) متبوعة برمز العملة (ر.س) أو الوحدة.\n- التوصيات: تقسيم المخرجات دائماً إلى:\n  1. ملخص تشخيصي سريع (Executive Summary).\n  2. مؤشرات الأداء والتباينات (Variance & KPI Analysis).\n  3. التنبيهات والانحرافات الخطرة (Critical Flags & Guardrail Violations).\n  4. خطة العمل المباشرة بالأولويات (Immediate Action Plan - 24h / 7 Days).",
+  "metadata": {
+    "exported_at": "2026-09-16T20:01:14.093118",
+    "platform": "Google AI Studio",
+    "recommended_models": [
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-1.5-pro"
+    ],
+    "kpi_summary": {
+      "total_cafe_revenue": 6855.0,
+      "total_cafe_cups": 375,
+      "total_cafe_tickets": 267,
+      "total_roastery_collected": 14770.0,
+      "total_roastery_pending": 0.0,
+      "total_green_coffee_kg": 201.0,
+      "total_roasted_coffee_kg": 173.0,
+      "average_roast_loss_pct": 13.93,
+      "total_waste_sar": 122.0,
+      "total_fixed_commitments_sar": 18099.0,
+      "total_combined_revenue": 21625.0
+    }
+  },
+  "schema": {
+    "tasks": "CREATE TABLE tasks (\n            id INTEGER PRIMARY KEY,\n            week INTEGER NOT NULL,\n            task TEXT NOT NULL,\n            cat TEXT NOT NULL,\n            status TEXT NOT NULL,\n            responsible TEXT NOT NULL,\n            dueDate TEXT,\n            completedAt TEXT,\n            notes TEXT\n        )",
+    "cafe_sales": "CREATE TABLE cafe_sales (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            date TEXT NOT NULL,\n            shift TEXT NOT NULL,\n            barista TEXT NOT NULL,\n            cups INTEGER NOT NULL,\n            desserts INTEGER NOT NULL,\n            revenue REAL NOT NULL,\n            tickets INTEGER NOT NULL,\n            avgTicket REAL NOT NULL,\n            notes TEXT,\n            createdAt TEXT NOT NULL\n        )",
+    "roastery_sales": "CREATE TABLE roastery_sales (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            date TEXT NOT NULL,\n            client TEXT NOT NULL,\n            roastProfile TEXT,\n            greenKg REAL NOT NULL,\n            roastedKg REAL NOT NULL,\n            roastLossPct REAL NOT NULL,\n            pricePerKg REAL NOT NULL,\n            type TEXT NOT NULL,\n            paid REAL NOT NULL,\n            pending REAL NOT NULL,\n            status TEXT NOT NULL,\n            notes TEXT,\n            createdAt TEXT NOT NULL\n        )",
+    "waste_logs": "CREATE TABLE waste_logs (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            date TEXT NOT NULL,\n            category TEXT NOT NULL,\n            item TEXT NOT NULL,\n            quantity REAL NOT NULL,\n            unit TEXT NOT NULL,\n            costSAR REAL NOT NULL,\n            reason TEXT NOT NULL,\n            reportedBy TEXT NOT NULL,\n            shift TEXT NOT NULL,\n            createdAt TEXT NOT NULL\n        )",
+    "menu_items": "CREATE TABLE menu_items (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            name TEXT NOT NULL,\n            category TEXT NOT NULL,\n            price REAL NOT NULL,\n            cost REAL NOT NULL,\n            popularity INTEGER NOT NULL,\n            classType TEXT NOT NULL,\n            label TEXT NOT NULL,\n            badge TEXT NOT NULL,\n            icon TEXT NOT NULL\n        )",
+    "dept_tasks": "CREATE TABLE dept_tasks (\n            id TEXT PRIMARY KEY,\n            deptKey TEXT NOT NULL,\n            title TEXT NOT NULL,\n            assignedTo TEXT NOT NULL,\n            priority TEXT NOT NULL,\n            dueDate TEXT NOT NULL,\n            status TEXT NOT NULL,\n            createdAt TEXT NOT NULL\n        )",
+    "financial_commitments": "CREATE TABLE financial_commitments (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            title TEXT NOT NULL,\n            amount REAL NOT NULL,\n            dueDate TEXT NOT NULL,\n            paymentMethod TEXT NOT NULL,\n            status TEXT NOT NULL,\n            type TEXT NOT NULL\n        )",
+    "dev_pipeline": "CREATE TABLE dev_pipeline (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            category TEXT NOT NULL,\n            title TEXT NOT NULL,\n            description TEXT NOT NULL,\n            progressPct INTEGER NOT NULL,\n            owner TEXT NOT NULL,\n            targetDate TEXT NOT NULL,\n            status TEXT NOT NULL\n        )"
+  },
+  "data": {
+    "tasks": [
+      {
+        "id": 1,
+        "week": 1,
+        "task": "حصر جميع الأصول الثابتة والمعدات وتوثيق الضمانات لمقهى RoR.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 2,
+        "week": 1,
+        "task": "إدخال بيانات الموردين الحاليين وتثبيت شروط الدفع والائتمان.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 3,
+        "week": 1,
+        "task": "إعداد وتدقيق قائمة المكونات الأولية (Raw Materials) لجميع المشروبات والأطباق.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 4,
+        "week": 1,
+        "task": "تعيين أسعار التكلفة المعيارية (Standard Recipe Cost) للمشروبات والوجبات الرئيسية.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 5,
+        "week": 1,
+        "task": "ضبط أرصدة المخزون الافتتاحية للمستودع الرئيسي والثلاجات الفرعية.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 6,
+        "week": 2,
+        "task": "توزيع المهام التشغيلية اليومية لموظفي صالة RoR والبارتندرز والمطبخ.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 7,
+        "week": 2,
+        "task": "تفعيل مصفوفة المسؤوليات (RACI) وتحديد من يملك القرار النهائي لكل قسم.",
+        "cat": "حوكمة",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 8,
+        "week": 2,
+        "task": "إعداد كتيب الموظف الداخلي (Employee Handbook) وتوضيح معايير خدمة RoR.",
+        "cat": "حوكمة",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 9,
+        "week": 2,
+        "task": "جدولة فترات العمل (Shift Schedule) وتوزيع ساعات الذروة والهدوء أسبوعياً.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 10,
+        "week": 2,
+        "task": "تفعيل نظام تقييم الأداء الأسبوعي الأولي لفريق الخدمة والتحضير.",
+        "cat": "جودة وتطوير",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 11,
+        "week": 3,
+        "task": "توثيق إجراءات التحضير المسبق (Prep Sheet) لخط الإنتاج الساخن والبارد.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 12,
+        "week": 3,
+        "task": "إطلاق سجل تتبع الهدر اليومي (Daily Waste Log) في المطبخ والبار.",
+        "cat": "جودة وتطوير",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 13,
+        "week": 3,
+        "task": "تحديد الحد الأعلى والحد الأدنى للطلب (Min/Max Par Levels) لكل صنف بالمخزن.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 14,
+        "week": 3,
+        "task": "فحص وضبط معايير معايرة المكائن (Espresso Calibration, Grinder, Ovens).",
+        "cat": "جودة وتطوير",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 15,
+        "week": 3,
+        "task": "تطبيق آلية التدقيق على الاستلام ودرجات حرارة الأغذية الواردة.",
+        "cat": "جودة وتطوير",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 16,
+        "week": 4,
+        "task": "ربط وتحليل بيانات نظام البيع (POS) لاستخراج حجم المبيعات الفعلي للأسابيع الماضية.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 17,
+        "week": 4,
+        "task": "تصنيف أصناف المنيو في جدول أولي وفق هندسة القائمة (Stars, Puzzles, Plowhorses, Dogs).",
+        "cat": "تسويقية",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 18,
+        "week": 4,
+        "task": "مراجعة أسعار بيع المشروبات الأكثر طلباً بـ RoR ومقارنتها بأسعار المنافسين.",
+        "cat": "تسويقية",
+        "status": "completed",
+        "responsible": "جود",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 19,
+        "week": 4,
+        "task": "حساب هامش الربح الإجمالي (Gross Margin) لكل تصنيف في منيو RoR الحالي.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 20,
+        "week": 4,
+        "task": "اتخاذ قرار مبدئي بشأن تعديل أسعار بيع الأصناف أو استبدال الأصناف الضعيفة.",
+        "cat": "حوكمة",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 21,
+        "week": 5,
+        "task": "مراجعة حركة النقد اليومية (Daily Cash Flow Drop) ومطابقتها مع تقارير المبيعات.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 22,
+        "week": 5,
+        "task": "جدولة فواتير الموردين المستحقة وتوزيع دفعاتها لتجنب انقطاع التوريد.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 23,
+        "week": 5,
+        "task": "حصر الذمم المدينة (مبيعات الشركات/الفعاليات لـ RoR) ومتابعة تحصيل المدفوعات.",
+        "cat": "مبيعات وجملة",
+        "status": "completed",
+        "responsible": "جود",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 24,
+        "week": 5,
+        "task": "إنشاء صندوق النثرية (Petty Cash) وتحديد صلاحيات صرفه وتوثيق فواتيره السريعة.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 25,
+        "week": 5,
+        "task": "تحليل المصاريف التشغيلية الثابتة والمتغيرة وربطها بنقطة التعادل المستهدفة.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 26,
+        "week": 6,
+        "task": "تطبيق قائمة التدقيق البيئية والصحية والبلدية الداخلية بـ RoR.",
+        "cat": "جودة وتطوير",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 27,
+        "week": 6,
+        "task": "تفعيل منبه التراخيص القانونية والصحية وفترات تجديد سجلات وتراخيص مقهى RoR.",
+        "cat": "حوكمة",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 28,
+        "week": 6,
+        "task": "إجراء فحص سري للمتسوق الخفي (Mystery Shopper) لتقييم كفاءة الخدمة وسرعتها.",
+        "cat": "جودة وتطوير",
+        "status": "completed",
+        "responsible": "جود",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 29,
+        "week": 6,
+        "task": "مراجعة شكاوى وملاحظات العملاء على منصات التقييم (Google Maps / Social Media).",
+        "cat": "تسويقية",
+        "status": "completed",
+        "responsible": "جود",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 30,
+        "week": 6,
+        "task": "تدريب فريق العمل بـ RoR على سيناريوهات التعامل مع ضغط العمل وشكاوى العملاء المباشرة.",
+        "cat": "تشغيلية",
+        "status": "completed",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 31,
+        "week": 7,
+        "task": "حساب تكلفة الغذاء الفعلية (Actual Food Cost) ومقارنتها بالمعيارية المخطط لها.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 32,
+        "week": 7,
+        "task": "احتساب تكلفة العمالة الإجمالية (Labor Cost %) كنسبة مئوية من المبيعات الفعلية.",
+        "cat": "مالية وتكاليف",
+        "status": "completed",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 33,
+        "week": 7,
+        "task": "تحديد التكلفة الأساسية (Prime Cost) والتأكد من أنها ضمن النطاق المالي الآمن (<60%).",
+        "cat": "مالية وتكاليف",
+        "status": "in-progress",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 34,
+        "week": 7,
+        "task": "إعداد تقرير التباين الأسبوعي (Variance Report) بين الاستهلاك الفعلي والمعياري للمواد.",
+        "cat": "جودة وتطوير",
+        "status": "in-progress",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 35,
+        "week": 7,
+        "task": "وضع خطة عمل فورية لمعالجة الفروقات في المواد المرتفعة التكلفة.",
+        "cat": "تشغيلية",
+        "status": "pending",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 36,
+        "week": 8,
+        "task": "تطوير لوحة قيادة الأداء النهائية (Final Performance Dashboard) الشاملة لجميع المؤشرات.",
+        "cat": "حوكمة",
+        "status": "pending",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 37,
+        "week": 8,
+        "task": "عرض التقرير المالي النهائي ومقارنة النتائج الفعلية بالأهداف المستهدفة بـ RoR.",
+        "cat": "مالية وتكاليف",
+        "status": "pending",
+        "responsible": "أنس",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 38,
+        "week": 8,
+        "task": "تثبيت مصفوفة الصلاحيات الدائمة (Final RACI) وتحديث الوصف الوظيفي لجميع العاملين.",
+        "cat": "حوكمة",
+        "status": "pending",
+        "responsible": "عبدالله",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 39,
+        "week": 8,
+        "task": "تسليم أدلة التشغيل القياسية المحدثة (SOPs) لمدراء الفروع والورديات.",
+        "cat": "تشغيلية",
+        "status": "pending",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": 40,
+        "week": 8,
+        "task": "عقد اجتماع الإغلاق والتقييم النهائي مع الإدارة واعتماد خطة التوسع المستقبلية.",
+        "cat": "حوكمة",
+        "status": "pending",
+        "responsible": "علاء",
+        "dueDate": null,
+        "completedAt": null,
+        "notes": null
+      }
+    ],
+    "cafe_sales": [
+      {
+        "id": 1,
+        "date": "2026-09-15",
+        "shift": "صباحي (عارف)",
+        "barista": "عارف",
+        "cups": 72,
+        "desserts": 14,
+        "revenue": 1320.0,
+        "tickets": 53,
+        "avgTicket": 24.9,
+        "notes": "إقبال ممتاز على قهوة اليوم والكرواسون",
+        "createdAt": "2026-09-16T16:44:46.658672"
+      },
+      {
+        "id": 2,
+        "date": "2026-09-14",
+        "shift": "مسائي (علم)",
+        "barista": "علم",
+        "cups": 92,
+        "desserts": 22,
+        "revenue": 1720.0,
+        "tickets": 64,
+        "avgTicket": 26.8,
+        "notes": "ذروة مسائية عالية ومبيعات كولد برو ممتازة",
+        "createdAt": "2026-09-16T16:44:46.658685"
+      },
+      {
+        "id": 3,
+        "date": "2026-09-14",
+        "shift": "صباحي (عارف)",
+        "barista": "عارف",
+        "cups": 65,
+        "desserts": 11,
+        "revenue": 1185.0,
+        "tickets": 48,
+        "avgTicket": 24.6,
+        "notes": "حركة منتظمة ومعايرة ممتازة للفلتر",
+        "createdAt": "2026-09-16T16:44:46.658686"
+      },
+      {
+        "id": 4,
+        "date": "2026-09-13",
+        "shift": "مسائي (علم)",
+        "barista": "علم",
+        "cups": 88,
+        "desserts": 19,
+        "revenue": 1590.0,
+        "tickets": 60,
+        "avgTicket": 26.5,
+        "notes": "طلب عالي على الحلى والمشروبات الباردة",
+        "createdAt": "2026-09-16T16:44:46.658687"
+      },
+      {
+        "id": 5,
+        "date": "2026-09-13",
+        "shift": "صباحي (عارف)",
+        "barista": "عارف",
+        "cups": 58,
+        "desserts": 9,
+        "revenue": 1040.0,
+        "tickets": 42,
+        "avgTicket": 24.7,
+        "notes": "فترة الصباح هادئة ومبيعات بن منزلي",
+        "createdAt": "2026-09-16T16:44:46.658688"
+      }
+    ],
+    "roastery_sales": [
+      {
+        "id": 1,
+        "date": "2026-09-15",
+        "client": "مقهى الأفق (حائل)",
+        "roastProfile": "بروفايل إسبريسو كولومبي",
+        "greenKg": 58.0,
+        "roastedKg": 50.0,
+        "roastLossPct": 13.8,
+        "pricePerKg": 75.0,
+        "type": "wholesale",
+        "paid": 3750.0,
+        "pending": 0.0,
+        "status": "مكتمل",
+        "notes": "تسليم مباشر عبر طاقة التحميص الأساسية",
+        "createdAt": "2026-09-16T16:44:46.658747"
+      },
+      {
+        "id": 2,
+        "date": "2026-09-14",
+        "client": "مبيعات رف الفرع (أرباع 250جم)",
+        "roastProfile": "بروفايل إثيوبي شلشلي",
+        "greenKg": 29.0,
+        "roastedKg": 25.0,
+        "roastLossPct": 13.8,
+        "pricePerKg": 110.0,
+        "type": "retail",
+        "paid": 2750.0,
+        "pending": 0.0,
+        "status": "مكتمل",
+        "notes": "تغليف 100 كيس ربع للرف",
+        "createdAt": "2026-09-16T16:44:46.658749"
+      },
+      {
+        "id": 3,
+        "date": "2026-09-12",
+        "client": "سلسلة مقاهي نجد المختصة",
+        "roastProfile": "خلطة RoR التأسيسية",
+        "greenKg": 93.0,
+        "roastedKg": 80.0,
+        "roastLossPct": 14.0,
+        "pricePerKg": 82.0,
+        "type": "wholesale",
+        "paid": 6560.0,
+        "pending": 0.0,
+        "status": "مكتمل",
+        "notes": "عقد توريد شهري",
+        "createdAt": "2026-09-16T16:44:46.658753"
+      },
+      {
+        "id": 4,
+        "date": "2026-09-10",
+        "client": "متجر RoR الإلكتروني (أرباع 250جم)",
+        "roastProfile": "محصول كوستاريكا تارازو",
+        "greenKg": 21.0,
+        "roastedKg": 18.0,
+        "roastLossPct": 14.3,
+        "pricePerKg": 95.0,
+        "type": "retail",
+        "paid": 1710.0,
+        "pending": 0.0,
+        "status": "مكتمل",
+        "notes": "توزيع طلبيات الشحن السريع",
+        "createdAt": "2026-09-16T16:44:46.658754"
+      }
+    ],
+    "waste_logs": [
+      {
+        "id": 1,
+        "date": "2026-09-15",
+        "category": "coffee",
+        "item": "بن مطحون (معايرة الصباح)",
+        "quantity": 0.45,
+        "unit": "كجم",
+        "costSAR": 45.0,
+        "reason": "معايرة طاحونة الإسبريسو بعد تنظيف الشفرات",
+        "reportedBy": "عارف",
+        "shift": "morning",
+        "createdAt": "2026-09-16T16:44:46.658792"
+      },
+      {
+        "id": 2,
+        "date": "2026-09-15",
+        "category": "milk",
+        "item": "حليب طازج نادك",
+        "quantity": 2.0,
+        "unit": "لتر",
+        "costSAR": 18.0,
+        "reason": "بقايا تبخير زائد وقت الذروة",
+        "reportedBy": "علم",
+        "shift": "evening",
+        "createdAt": "2026-09-16T16:44:46.658796"
+      },
+      {
+        "id": 3,
+        "date": "2026-09-14",
+        "category": "pastry",
+        "item": "كرواسون زعتر وجبن",
+        "quantity": 3.0,
+        "unit": "قطعة",
+        "costSAR": 24.0,
+        "reason": "انتهاء الصلاحية اليومية للعرض",
+        "reportedBy": "علم",
+        "shift": "evening",
+        "createdAt": "2026-09-16T16:44:46.658797"
+      },
+      {
+        "id": 4,
+        "date": "2026-09-13",
+        "category": "coffee",
+        "item": "حبوب محروقة (أول دفعة)",
+        "quantity": 0.5,
+        "unit": "كجم",
+        "costSAR": 35.0,
+        "reason": "ارتفاع حرارة الدرام المفاجئ",
+        "reportedBy": "علاء",
+        "shift": "morning",
+        "createdAt": "2026-09-16T16:44:46.658798"
+      }
+    ],
+    "menu_items": [
+      {
+        "id": 1,
+        "name": "V60 إثيوبي شلشلي",
+        "category": "مشروبات ساخنة",
+        "price": 18.0,
+        "cost": 4.5,
+        "popularity": 8,
+        "classType": "stars",
+        "label": "نجم (Star)",
+        "badge": "badge-green",
+        "icon": "fa-star"
+      },
+      {
+        "id": 2,
+        "name": "فلات وايت RoR",
+        "category": "مشروبات ساخنة",
+        "price": 15.0,
+        "cost": 3.8,
+        "popularity": 9,
+        "classType": "stars",
+        "label": "نجم (Star)",
+        "badge": "badge-green",
+        "icon": "fa-star"
+      },
+      {
+        "id": 3,
+        "name": "قهوة اليوم كولومبي",
+        "category": "مشروبات ساخنة",
+        "price": 9.0,
+        "cost": 1.8,
+        "popularity": 10,
+        "classType": "stars",
+        "label": "نجم (Star)",
+        "badge": "badge-green",
+        "icon": "fa-star"
+      },
+      {
+        "id": 4,
+        "name": "سبانش لاتيه RoR",
+        "category": "مشروبات ساخنة",
+        "price": 19.0,
+        "cost": 5.5,
+        "popularity": 8,
+        "classType": "stars",
+        "label": "نجم (Star)",
+        "badge": "badge-green",
+        "icon": "fa-star"
+      },
+      {
+        "id": 5,
+        "name": "كولد برو مقطر RoR",
+        "category": "مشروبات باردة",
+        "price": 21.0,
+        "cost": 5.2,
+        "popularity": 6,
+        "classType": "puzzles",
+        "label": "لغز (Puzzle)",
+        "badge": "badge-blue",
+        "icon": "fa-circle-question"
+      },
+      {
+        "id": 6,
+        "name": "كيكة التمر بالكراميل",
+        "category": "حلويات ومخبوزات",
+        "price": 16.0,
+        "cost": 4.0,
+        "popularity": 5,
+        "classType": "puzzles",
+        "label": "لغز (Puzzle)",
+        "badge": "badge-blue",
+        "icon": "fa-circle-question"
+      },
+      {
+        "id": 7,
+        "name": "كورتادو كلاسيك",
+        "category": "مشروبات ساخنة",
+        "price": 14.0,
+        "cost": 3.2,
+        "popularity": 7,
+        "classType": "plowhorses",
+        "label": "حصان (Plowhorse)",
+        "badge": "badge-warning",
+        "icon": "fa-horse"
+      },
+      {
+        "id": 8,
+        "name": "شاي إنجليزي فاخر",
+        "category": "مشروبات ساخنة",
+        "price": 8.0,
+        "cost": 1.2,
+        "popularity": 3,
+        "classType": "dogs",
+        "label": "منخفض (Dog)",
+        "badge": "badge-danger",
+        "icon": "fa-paw"
+      }
+    ],
+    "dept_tasks": [
+      {
+        "id": "dept_task_1",
+        "deptKey": "production",
+        "title": "معايرة الحماصة الرائدة لدفعة البن الإثيوبي ييرغاتشيف",
+        "assignedTo": "علاء يوسف",
+        "priority": "high",
+        "dueDate": "2026-09-22",
+        "status": "pending",
+        "createdAt": "2026-09-16 09:00:00"
+      },
+      {
+        "id": "dept_task_2",
+        "deptKey": "quality",
+        "title": "جلسة كبينغ دورية لعينات التحميص الأسبوعية (SCA Cupping)",
+        "assignedTo": "علاء يوسف",
+        "priority": "high",
+        "dueDate": "2026-09-23",
+        "status": "completed",
+        "createdAt": "2026-09-15 14:00:00"
+      },
+      {
+        "id": "dept_task_3",
+        "deptKey": "marketing",
+        "title": "إطلاق حملة تيك توك وريلز على محصول كولومبيا هويلا الجديد",
+        "assignedTo": "جود القصير",
+        "priority": "medium",
+        "dueDate": "2026-09-24",
+        "status": "pending",
+        "createdAt": "2026-09-16 10:00:00"
+      },
+      {
+        "id": "dept_task_4",
+        "deptKey": "sales",
+        "title": "التواصل مع 5 مقاهٍ مستهدفة لتوريد قهوة الإسبريسو بالجملة",
+        "assignedTo": "جود القصير",
+        "priority": "high",
+        "dueDate": "2026-09-25",
+        "status": "pending",
+        "createdAt": "2026-09-16 11:30:00"
+      },
+      {
+        "id": "dept_task_5",
+        "deptKey": "maintenance",
+        "title": "استبدال فلاتر المياه ومعايرة ضغط بار مكينة الإسبريسو",
+        "assignedTo": "عبد الله القصير",
+        "priority": "medium",
+        "dueDate": "2026-09-26",
+        "status": "pending",
+        "createdAt": "2026-09-16 12:00:00"
+      },
+      {
+        "id": "dept_task_6",
+        "deptKey": "finance",
+        "title": "إقفال مسيرات الرواتب لشهر سبتمبر ومطابقة ZATCA",
+        "assignedTo": "أنس الصفدي",
+        "priority": "high",
+        "dueDate": "2026-09-28",
+        "status": "pending",
+        "createdAt": "2026-09-16 13:00:00"
+      }
+    ],
+    "financial_commitments": [
+      {
+        "id": 1,
+        "title": "الإيجار الشهري",
+        "amount": 12000.0,
+        "dueDate": "2026-10-01",
+        "paymentMethod": "تحويل بنكي",
+        "status": "paid",
+        "type": "fixed"
+      },
+      {
+        "id": 2,
+        "title": "فاتورة الكهرباء والمياه",
+        "amount": 3200.0,
+        "dueDate": "2026-09-20",
+        "paymentMethod": "SADAD",
+        "status": "pending",
+        "type": "fixed"
+      },
+      {
+        "id": 3,
+        "title": "المقابل المالي والتراخيص",
+        "amount": 800.0,
+        "dueDate": "2026-09-15",
+        "paymentMethod": "تحويل بنكي",
+        "status": "paid",
+        "type": "fixed"
+      },
+      {
+        "id": 4,
+        "title": "التأمينات الاجتماعية GOSI",
+        "amount": 1800.0,
+        "dueDate": "2026-10-10",
+        "paymentMethod": "خصم تلقائي",
+        "status": "paid",
+        "type": "fixed"
+      },
+      {
+        "id": 5,
+        "title": "اشتراك نظام نقاط البيع Foodics",
+        "amount": 299.0,
+        "dueDate": "2026-10-05",
+        "paymentMethod": "بطاقة ائتمان",
+        "status": "paid",
+        "type": "fixed"
+      },
+      {
+        "id": 6,
+        "title": "شحنة بن أخضر كولومبي وإثيوبي",
+        "amount": 14500.0,
+        "dueDate": "2026-09-25",
+        "paymentMethod": "تحويل بنكي",
+        "status": "pending",
+        "type": "variable"
+      }
+    ],
+    "dev_pipeline": [
+      {
+        "id": 1,
+        "category": "training",
+        "title": "برنامج تدريب الباريستا المتقدم (SCA Foundation)",
+        "description": "تدريب عملي على تكنيك الحليب والتبخير ومعايرة الطواحين بدقة",
+        "progressPct": 75,
+        "owner": "علاء يوسف",
+        "targetDate": "2026-10-01",
+        "status": "in-progress"
+      },
+      {
+        "id": 2,
+        "category": "sop",
+        "title": "دليل تشغيل وافتتاح محطة البار اليومية",
+        "description": "خطوات الفحص الصباحي، المعايرة، وتعقيم أسطح التحضير والأدوات",
+        "progressPct": 90,
+        "owner": "عبد الله القصير",
+        "targetDate": "2026-09-25",
+        "status": "in-progress"
+      },
+      {
+        "id": 3,
+        "category": "automation",
+        "title": "ربط تلقائي بين نظام المحمصة ونقاط البيع POS",
+        "description": "مزامنة لحظية لحركة أرصدة أكياس الربع مع كاشير الفرع",
+        "progressPct": 60,
+        "owner": "جود القصير",
+        "targetDate": "2026-10-15",
+        "status": "in-progress"
+      },
+      {
+        "id": 4,
+        "category": "innovation",
+        "title": "تطوير خط إنتاج قهوة باردة معلبة RTD",
+        "description": "تجارب تحضير كولد برو نيترو وتعبئة عبوات زجاجية لعملاء الجملة",
+        "progressPct": 40,
+        "owner": "علاء + جود",
+        "targetDate": "2026-11-01",
+        "status": "in-progress"
+      }
+    ]
+  },
+  "sample_prompts": [
+    {
+      "id": "comprehensive_audit",
+      "title": "التدقيق المالي والتشغيلي الشامل",
+      "prompt": "بصفتك كبير المستشارين الماليين والتشغيليين لـ RoR، قدم تحليلاً شاملاً لأداء المقهى والمحمصة بناءً على البيانات المرفقة..."
+    },
+    {
+      "id": "roast_loss_diagnostics",
+      "title": "تشخيص كفاءة التحميص ونسبة الفاقد",
+      "prompt": "راجع سجلات تشغيل المحمصة (roastery_sales) بدقة وتأكد من مطابقة نسبة الفاقد للمعيار 12%-18%..."
+    },
+    {
+      "id": "waste_audit",
+      "title": "تحليل الهدر والإجراءات التصحيحية",
+      "prompt": "قم بتدقيق سجلات الهدر والتالف ومقارنتها بسقف الهدر اليومي (100 ر.س)..."
+    },
+    {
+      "id": "menu_engineering",
+      "title": "مصفوفة هندسة المنيو واستراتيجية التسعير",
+      "prompt": "استناداً إلى بيانات جدول menu_items، حدد كيفية تحسين هوامش ربحية فرس الرهان والتعامل مع الألغاز والأعباء..."
+    },
+    {
+      "id": "cash_flow_receivables",
+      "title": "التدفقات النقدية وتحصيل مستحقات الـ B2B",
+      "prompt": "حلل المبالغ المحصلة والمتبقية في جدول roastery_sales مقابل الالتزامات المالية المستحقة..."
+    }
+  ]
+}
